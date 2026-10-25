@@ -102,4 +102,5 @@ assert.equal(sizeFromDetections([]), null);
 assert.match(describeFrame([{ label: 'person', type: 'box', coords: [100, 0, 300, 900] }]), /1 personnage \(à gauche\)/);
 assert.deepEqual(parseSse('event: complete\ndata: [null, null, {"success": true, "detections": []}]\n'), { event: 'complete', data: [null, null, { success: true, detections: [] }] });
 assert.equal(parseSse('event: error\ndata: null\n').event, 'error');
+assert.equal(describeFrame([{ label: 'person', type: 'box', coords: [100, 0, 200, 900] }, { label: 'person', type: 'box', coords: [150, 0, 250, 900] }, { label: 'person', type: 'box', coords: [800, 0, 900, 900] }]), '3 personnages (2 à gauche, 1 à droite)');
 console.log('OK');

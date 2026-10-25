@@ -23,7 +23,9 @@ export function describeFrame(d: Detection[]): string {
   const people = boxes(d, /person|people|human|personne/i);
   const where = (b: Detection) => { const x = (b.coords[0] + b.coords[2]) / 2000; return x < 0.4 ? 'à gauche' : x > 0.6 ? 'à droite' : 'au centre'; };
   const size = sizeFromDetections(d);
-  const parts = [people.length ? `${people.length} personnage${people.length > 1 ? 's' : ''} (${people.map(where).join(', ')})` : 'aucun personnage repéré'];
+  const count = (w: string) => people.filter((p) => where(p) === w).length;
+  const spread = ['à gauche', 'au centre', 'à droite'].flatMap((w) => (count(w) ? [people.length > 1 ? `${count(w)} ${w}` : w] : [])).join(', ');
+  const parts = [people.length ? `${people.length} personnage${people.length > 1 ? 's' : ''} (${spread})` : 'aucun personnage repéré'];
   if (size) parts.push(`valeur de plan estimée : ${size}`);
   return parts.join(' · ');
 }
