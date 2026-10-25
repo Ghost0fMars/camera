@@ -1,0 +1,65 @@
+// Vérification rapide : npm test
+import assert from 'node:assert/strict';
+import { cleanAnalysis, extractJson } from '../api/analyse';
+import { angleOf, nextCamera, shift } from '../src/lib/plan';
+import { dayStats, fmtDur, parseDur, recap } from '../src/lib/planning';
+import { parseScript, parseSlug } from '../src/lib/screenplay';
+import { EMPTY_PROJECT } from '../src/types';
+
+const script = `# La Clé
+
+INT. IMMEUBLE DE VINCENT : PALIER - NUIT
+
+Vincent sort de son appartement, le regard sur son téléphone.
+
+VINCENT
+(distrait)
+Voilà.
+
+EXT. RUE DEVANT LE BAR – NUIT
+
+Clémence baisse le rideau.
+
+CLÉMENCE
+Il dit quoi, ton serrurier ?
+
+VINCENT
+Rien.
+
+INT./EXT. VOITURE - JOUR
+
+Un taxi passe.
+`;
+
+const p = parseScript(script);
+assert.equal(p.title, 'La Clé');
+assert.equal(p.scenes.length, 3);
+assert.deepEqual(p.characters.sort(), ['Clémence', 'Vincent']);
+assert.deepEqual(p.scenes[1].roles, ['Clémence', 'Vincent']);
+assert.deepEqual(parseSlug('INT. IMMEUBLE DE VINCENT : PALIER - NUIT'), { ie: 'INT', decor: 'Immeuble de vincent : palier', effect: 'NUIT' });
+assert.equal(p.scenes[0].decor, 'Immeuble de Vincent : palier');
+assert.equal(p.scenes[1].decor, 'Rue devant le bar');
+assert.equal(p.scenes[2].ie, 'INT/EXT');
+assert.equal(fmtDur(510), "8'30");
+assert.equal(parseDur("8'30"), 510);
+assert.equal(parseDur('90'), 90);
+
+const proj = { ...EMPTY_PROJECT, scenes: p.scenes.map((s) => ({ ...s, dayId: 'd1' })), days: [{ id: 'd1', lieu: '', notes: '' }] };
+proj.scenes[0].categories.accessoires = ['Téléphone'];
+proj.scenes[1].categories.accessoires = ['Téléphone', 'Clé du bar'];
+const st = dayStats(proj, proj.days[0]);
+assert.equal(st.sequences.length, 3);
+assert.equal(st.ie, 'INT, EXT, INT/EXT');
+assert.deepEqual(recap(proj.scenes, 'accessoires'), [{ item: 'Clé du bar', seqs: [2] }, { item: 'Téléphone', seqs: [1, 2] }]);
+
+const a = cleanAnalysis(extractJson('Voici :\n```json\n{"summary":"Il sort.","accessoires":["Téléphone", " "],"son":"pas une liste"}\n```'));
+assert.equal(a.summary, 'Il sort.');
+assert.deepEqual(a.categories.accessoires, ['Téléphone']);
+assert.deepEqual(a.categories.son, []);
+assert.throws(() => extractJson('pas de json'));
+
+assert.deepEqual(shift({ id: 'a', kind: 'line', a: { x: 1, y: 2 }, b: { x: 3, y: 4 } }, 10, 20), { id: 'a', kind: 'line', a: { x: 11, y: 22 }, b: { x: 13, y: 24 } });
+assert.equal(angleOf({ x: 0, y: 0 }, { x: 0, y: 5 }), 90);
+assert.equal(nextCamera([{ id: 'c', kind: 'camera', at: { x: 0, y: 0 }, angle: 0, label: 'Cam 1' }]), 'Cam 2');
+
+console.log('OK');
