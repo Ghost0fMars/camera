@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import express from 'express';
-import analyseHandler from './api/analyse';
-import decoupageHandler from './api/decoupage';
+import analyseHandler from './api/analyse.js';
+import decoupageHandler from './api/decoupage.js';
 
 dotenv.config({ path: '.env.local' });
 dotenv.config();

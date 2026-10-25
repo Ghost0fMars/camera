@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { AlbertError, chatCompletion } from './_albert';
+import { AlbertError, chatCompletion } from './_albert.js';
 
 const KEYS = ['silhouettes', 'decoration', 'accessoires', 'costumes', 'maquillage', 'image', 'son', 'electricite', 'machinerie', 'vehicules', 'effets', 'animaux', 'armes', 'regie', 'miseEnScene'];
 

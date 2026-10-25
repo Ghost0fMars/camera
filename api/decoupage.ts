@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
-import { MOVES, SIZES } from '../src/types';
-import { AlbertError, chatCompletion } from './_albert';
-import { extractJson } from './analyse';
+import { MOVES, SIZES } from '../src/types.js';
+import { AlbertError, chatCompletion } from './_albert.js';
+import { extractJson } from './analyse.js';
 
 const SYSTEM = `Tu es assistant réalisateur pour un court ou long métrage français. À partir du texte d'UNE séquence, tu proposes un découpage technique : la liste des plans à tourner, dans l'ordre du montage.
 Réponds UNIQUEMENT avec un objet JSON valide, sans texte autour, de la forme :
