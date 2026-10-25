@@ -18,3 +18,24 @@ export const angleOf = (a: Pt, b: Pt) => Math.round((Math.atan2(b.y - a.y, b.x -
 
 /** Prochain nom de caméra libre : « Cam 1 », « Cam 2 »… */
 export const nextCamera = (plan: Shape[]) => `Cam ${plan.filter((s) => s.kind === 'camera').length + 1}`;
+
+/** À qui appartient un déplacement : le choix explicite, sinon le personnage ou la caméra le plus proche du départ (≤ 50). */
+export function ownerOf(plan: Shape[], start: Pt, who = ''): string | undefined {
+  if (who) return who;
+  let best: string | undefined; let d = 50;
+  for (const s of plan) {
+    if (s.kind !== 'char' && s.kind !== 'camera') continue;
+    const k = Math.hypot(s.at.x - start.x, s.at.y - start.y);
+    if (k <= d) { d = k; best = s.kind === 'char' ? s.name : s.label; }
+  }
+  return best;
+}
+
+/** Pointe de flèche (3 sommets) au bout d'un tracé. */
+export function arrowHead(pts: Pt[], size = 16): string {
+  const e = pts[pts.length - 1];
+  const f = pts[Math.max(0, pts.length - 6)];
+  const a = Math.atan2(e.y - f.y, e.x - f.x);
+  const p = (da: number) => `${Math.round(e.x - size * Math.cos(a + da))},${Math.round(e.y - size * Math.sin(a + da))}`;
+  return `${e.x},${e.y} ${p(0.45)} ${p(-0.45)}`;
+}

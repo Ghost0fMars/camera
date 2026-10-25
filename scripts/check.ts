@@ -1,7 +1,8 @@
 // Vérification rapide : npm test
 import assert from 'node:assert/strict';
 import { cleanAnalysis, extractJson } from '../api/analyse';
-import { angleOf, nextCamera, shift } from '../src/lib/plan';
+import { angleOf, arrowHead, nextCamera, ownerOf, shift } from '../src/lib/plan';
+import type { Shape } from '../src/types';
 import { dayStats, fmtDur, parseDur, recap } from '../src/lib/planning';
 import { parseScript, parseSlug } from '../src/lib/screenplay';
 import { EMPTY_PROJECT } from '../src/types';
@@ -60,6 +61,11 @@ assert.throws(() => extractJson('pas de json'));
 
 assert.deepEqual(shift({ id: 'a', kind: 'line', a: { x: 1, y: 2 }, b: { x: 3, y: 4 } }, 10, 20), { id: 'a', kind: 'line', a: { x: 11, y: 22 }, b: { x: 13, y: 24 } });
 assert.equal(angleOf({ x: 0, y: 0 }, { x: 0, y: 5 }), 90);
+const cast: Shape[] = [{ id: 'v', kind: 'char', at: { x: 100, y: 100 }, name: 'Vincent' }, { id: 'c', kind: 'camera', at: { x: 500, y: 500 }, angle: 0, label: 'Cam 1' }];
+assert.equal(ownerOf(cast, { x: 120, y: 110 }), 'Vincent');
+assert.equal(ownerOf(cast, { x: 300, y: 300 }), undefined);
+assert.equal(ownerOf(cast, { x: 300, y: 300 }, 'Clémence'), 'Clémence');
+assert.equal(arrowHead([{ x: 0, y: 0 }, { x: 100, y: 0 }]).split(' ')[0], '100,0');
 assert.equal(nextCamera([{ id: 'c', kind: 'camera', at: { x: 0, y: 0 }, angle: 0, label: 'Cam 1' }]), 'Cam 2');
 
 console.log('OK');

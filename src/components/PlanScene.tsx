@@ -1,6 +1,6 @@
 import { useRef, useState, type PointerEvent } from 'react';
 import { Button } from '@/components/ui/button';
-import { angleOf, H, nextCamera, shift, W } from '../lib/plan';
+import { angleOf, arrowHead, H, nextCamera, ownerOf, shift, W } from '../lib/plan';
 import { newId } from '../lib/planning';
 import type { Project, Pt, Scene, Shape } from '../types';
 
@@ -25,6 +25,8 @@ export function PlanScene({ project, scene, updateScene }: {
   const plan = scene.plan ?? [];
   const set = (p: Shape[]) => updateScene(scene.id, { plan: p });
   const name = who || scene.roles[0] || 'Perso';
+  const colorOf = (n?: string) => (n?.startsWith('Cam ') ? '#b9770e' : n ? COLORS[Math.max(0, project.roles.findIndex((r) => r.name === n)) % COLORS.length] : '#c0392b');
+  const cams = plan.flatMap((s) => (s.kind === 'camera' ? [s.label] : []));
 
   const at = (e: PointerEvent): Pt => {
     const r = svg.current!.getBoundingClientRect();
@@ -59,7 +61,10 @@ export function PlanScene({ project, scene, updateScene }: {
     if (!draft) return;
     setDraft(null);
     const id = newId('p');
-    if ('pts' in draft) { if (draft.pts.length > 2) set([...plan, { id, kind: draft.tool, pts: draft.pts }]); return; }
+    if ('pts' in draft) {
+      if (draft.pts.length > 2) set([...plan, draft.tool === 'move' ? { id, kind: 'move', pts: draft.pts, who: ownerOf(plan, draft.pts[0], who) } : { id, kind: 'pen', pts: draft.pts }]);
+      return;
+    }
     const { a, b } = draft;
     if (draft.tool === 'camera') set([...plan, { id, kind: 'camera', at: a, angle: Math.hypot(b.x - a.x, b.y - a.y) > 8 ? angleOf(a, b) : 0, label: nextCamera(plan) }]);
     else if (Math.hypot(b.x - a.x, b.y - a.y) > 4) set([...plan, { id, kind: draft.tool, a, b }]);
@@ -69,7 +74,16 @@ export function PlanScene({ project, scene, updateScene }: {
     const o = { onPointerDown: (e: PointerEvent) => hit(e, s), opacity: ghost ? 0.5 : 1, className: tool === 'select' ? 'cursor-move' : tool === 'erase' ? 'cursor-pointer' : '' };
     switch (s.kind) {
       case 'pen': return <polyline {...o} points={pts2(s.pts)} fill="none" stroke="#222831" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />;
-      case 'move': return <polyline {...o} points={pts2(s.pts)} fill="none" stroke="#c0392b" strokeWidth={3} strokeDasharray="10 7" markerEnd="url(#arrow)" />;
+      case 'move': {
+        const c = colorOf(s.who);
+        return (
+          <g {...o}>
+            <polyline points={pts2(s.pts)} fill="none" stroke={c} strokeWidth={3} strokeDasharray="10 7" />
+            <polygon points={arrowHead(s.pts)} fill={c} />
+            {s.who && <text x={s.pts[0].x + 10} y={s.pts[0].y - 10} fontSize={15} fontWeight="bold" fill={c}>{s.who}</text>}
+          </g>
+        );
+      }
       case 'line': return <line {...o} x1={s.a.x} y1={s.a.y} x2={s.b.x} y2={s.b.y} stroke="#222831" strokeWidth={6} strokeLinecap="round" />;
       case 'rect': return <rect {...o} x={Math.min(s.a.x, s.b.x)} y={Math.min(s.a.y, s.b.y)} width={Math.abs(s.b.x - s.a.x)} height={Math.abs(s.b.y - s.a.y)} fill="#e5e7eb" stroke="#222831" strokeWidth={3} />;
       case 'camera': return (
@@ -81,7 +95,7 @@ export function PlanScene({ project, scene, updateScene }: {
       );
       case 'char': return (
         <g {...o}>
-          <circle cx={s.at.x} cy={s.at.y} r={20} fill={COLORS[Math.max(0, project.roles.findIndex((r) => r.name === s.name)) % COLORS.length]} />
+          <circle cx={s.at.x} cy={s.at.y} r={20} fill={colorOf(s.name)} />
           <text x={s.at.x} y={s.at.y + 6} textAnchor="middle" fontSize={17} fontWeight="bold" fill="#fff">{s.name.slice(0, 2).toUpperCase()}</text>
           <text x={s.at.x} y={s.at.y + 40} textAnchor="middle" fontSize={16}>{s.name}</text>
         </g>
@@ -101,9 +115,11 @@ export function PlanScene({ project, scene, updateScene }: {
         {TOOLS.map(([t, label]) => (
           <button key={t} onClick={() => setTool(t)} className={`rounded px-2.5 py-1 text-xs ${tool === t ? 'bg-[#222831] text-white' : 'bg-white hover:bg-neutral-200'}`}>{label}</button>
         ))}
-        {tool === 'char' && (
-          <select className="rounded border bg-white px-2 py-1 text-xs" value={name} onChange={(e) => setWho(e.target.value)}>
+        {(tool === 'char' || tool === 'move') && (
+          <select className="rounded border bg-white px-2 py-1 text-xs" value={tool === 'char' ? name : who} onChange={(e) => setWho(e.target.value)}>
+            {tool === 'move' && <option value="">Auto (le plus proche du départ)</option>}
             {[...new Set([...scene.roles, ...project.roles.map((r) => r.name)])].map((r) => <option key={r}>{r}</option>)}
+            {tool === 'move' && cams.map((c) => <option key={c}>{c}</option>)}
           </select>
         )}
         <Button variant="outline" size="sm" className="ml-auto" disabled={!plan.length} onClick={() => set(plan.slice(0, -1))}>Annuler le dernier</Button>
@@ -111,13 +127,12 @@ export function PlanScene({ project, scene, updateScene }: {
       </div>
       <p className="text-xs text-neutral-500">
         {tool === 'camera' ? 'Cliquez-glissez : le point est la caméra, la direction du glissé est son axe.'
-          : tool === 'move' ? 'Tracez le trajet d\'un personnage ou d\'une caméra (flèche).'
+          : tool === 'move' ? 'Tracez le trajet : il est rattaché au personnage ou à la caméra choisi, ou à celui posé près du départ.'
           : tool === 'select' ? 'Glissez un élément pour le déplacer.' : tool === 'erase' ? 'Cliquez un élément pour le supprimer.' : ' '}
       </p>
       <svg ref={svg} viewBox={`0 0 ${W} ${H}`} className="w-full touch-none select-none rounded border border-neutral-300 bg-white"
         style={{ cursor: tool === 'select' || tool === 'erase' ? 'default' : 'crosshair', backgroundImage: 'radial-gradient(#d4d4d8 1px, transparent 1px)', backgroundSize: '2.5% 3.9%' }}
         onPointerDown={down} onPointerMove={moveEv} onPointerUp={up}>
-        <defs><marker id="arrow" viewBox="0 0 10 10" refX={8} refY={5} markerWidth={7} markerHeight={7} orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c0392b" /></marker></defs>
         {plan.map((s) => <g key={s.id}>{render(s)}</g>)}
         {ghost && render(ghost, true)}
       </svg>

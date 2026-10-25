@@ -29,7 +29,7 @@ export interface Pt { x: number; y: number }
 
 /** Éléments du plan de scène en vue du dessus (coordonnées dans un repère 1000 × 640). */
 export type Shape = { id: string } & (
-  | { kind: 'pen' | 'move'; pts: Pt[] }          // tracé libre / déplacement (flèche)
+  | { kind: 'pen' | 'move'; pts: Pt[]; who?: string }  // tracé libre / déplacement (flèche) d'un personnage ou d'une caméra
   | { kind: 'line' | 'rect'; a: Pt; b: Pt }
   | { kind: 'camera'; at: Pt; angle: number; label: string }
   | { kind: 'char'; at: Pt; name: string }
