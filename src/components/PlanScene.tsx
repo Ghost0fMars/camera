@@ -33,6 +33,19 @@ export function PlanScene({ project, scene, updateScene }: {
     return { x: Math.round(((e.clientX - r.left) / r.width) * W), y: Math.round(((e.clientY - r.top) / r.height) * H) };
   };
 
+  const exportPng = () => {
+    const c = svg.current!.cloneNode(true) as SVGSVGElement;
+    c.removeAttribute('style'); c.setAttribute('xmlns', 'http://www.w3.org/2000/svg'); c.setAttribute('width', String(W * 2)); c.setAttribute('height', String(H * 2)); c.setAttribute('font-family', 'sans-serif');
+    c.insertAdjacentHTML('afterbegin', `<rect width="${W}" height="${H}" fill="#fff"/>`);
+    const img = new Image();
+    img.onload = () => {
+      const cv = Object.assign(document.createElement('canvas'), { width: W * 2, height: H * 2 });
+      cv.getContext('2d')!.drawImage(img, 0, 0);
+      cv.toBlob((b) => Object.assign(document.createElement('a'), { href: URL.createObjectURL(b!), download: `plan-seq-${scene.number}.png` }).click());
+    };
+    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(new XMLSerializer().serializeToString(c))}`;
+  };
+
   const hit = (e: PointerEvent, s: Shape) => {
     if (tool === 'erase') { e.stopPropagation(); set(plan.filter((x) => x.id !== s.id)); }
     else if (tool === 'select') { e.stopPropagation(); (e.currentTarget as Element).setPointerCapture?.(e.pointerId); drag.current = { id: s.id, last: at(e) }; }
@@ -123,6 +136,7 @@ export function PlanScene({ project, scene, updateScene }: {
           </select>
         )}
         <Button variant="outline" size="sm" className="ml-auto" disabled={!plan.length} onClick={() => set(plan.slice(0, -1))}>Annuler le dernier</Button>
+        <Button variant="outline" size="sm" disabled={!plan.length} onClick={exportPng}>Exporter en PNG</Button>
         <Button variant="outline" size="sm" disabled={!plan.length} onClick={() => window.confirm('Effacer tout le plan ?') && set([])}>Tout effacer</Button>
       </div>
       <p className="text-xs text-neutral-500">
