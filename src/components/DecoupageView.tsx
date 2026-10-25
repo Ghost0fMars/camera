@@ -28,7 +28,7 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
   const propose = async () => {
     setBusy(true); setMsg('');
     try {
-      const added = await proposeShots(scene, project.roles.map((r) => r.name));
+      const added = await proposeShots(scene, project.roles.map((r) => r.name), project.scenes);
       set([...shots, ...added]);
       setMsg(`${added.length} plans proposés par l'IA, ajoutés à la suite de votre liste.`);
     } catch (e) { setMsg((e as Error).message); }
@@ -37,7 +37,7 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
   const advise = async () => {
     if (scene.advice && !window.confirm('Remplacer les conseils actuels (y compris vos modifications) ?')) return;
     setBusy(true); setMsg('');
-    try { updateScene(scene.id, { advice: await adviseScene(scene, project.roles.map((r) => r.name)) }); }
+    try { updateScene(scene.id, { advice: await adviseScene(scene, project.roles.map((r) => r.name), project.scenes) }); }
     catch (e) { setMsg((e as Error).message); }
     setBusy(false);
   };

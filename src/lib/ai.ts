@@ -25,11 +25,11 @@ export function applyAnalysis(scene: Scene, a: Analysis): Scene {
 }
 
 /** Propose un découpage technique (liste de plans) pour une séquence. */
-export async function proposeShots(scene: Scene, roles: string[]): Promise<Shot[]> {
+export async function proposeShots(scene: Scene, roles: string[], all: Scene[] = []): Promise<Shot[]> {
   const res = await fetch('/api/decoupage', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: scene.text, decor: scene.decor, roles, cameras: (scene.plan ?? []).flatMap((p) => (p.kind === 'camera' ? [p.label] : [])) }),
+    body: JSON.stringify({ text: scene.text, decor: scene.decor, roles, position: position(scene, all), cameras: (scene.plan ?? []).flatMap((p) => (p.kind === 'camera' ? [p.label] : [])) }),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
@@ -47,7 +47,7 @@ export async function analyseShot(scene: Scene, shot: Shot, roles: string[]): Pr
 }
 
 /** Conseils de mise en scène (socle : Eisenstein) pour une séquence, avec l'état de son plan de scène. */
-export async function adviseScene(scene: Scene, roles: string[]): Promise<string> {
+export async function adviseScene(scene: Scene, roles: string[], all: Scene[] = []): Promise<string> {
   const plan = scene.plan ?? [];
   const cams = plan.flatMap((p) => (p.kind === 'camera' ? [`${p.label} (axe ${p.angle}°)`] : []));
   const chars = plan.flatMap((p) => (p.kind === 'char' ? [p.name] : []));
@@ -56,7 +56,7 @@ export async function adviseScene(scene: Scene, roles: string[]): Promise<string
   const res = await fetch('/api/mise-en-scene', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: scene.text, decor: scene.decor, roles, plan: desc }),
+    body: JSON.stringify({ text: scene.text, decor: scene.decor, roles, plan: desc, position: position(scene, all) }),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
@@ -69,4 +69,13 @@ export async function locateFrame(dataUrl: string): Promise<Detection[]> {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
   return data.detections as Detection[];
+}
+
+/** Place de la séquence dans le film, avec le résumé des séquences voisines (l'intégrale dramatique se lit dans la durée). */
+export function position(scene: Scene, all: Scene[]) {
+  const sorted = [...all].sort((a, b) => a.number - b.number);
+  const i = sorted.findIndex((s) => s.id === scene.id);
+  if (i < 0) return undefined;
+  const brief = (s?: Scene) => (s ? `${s.decor} — ${(s.summary || s.text).replace(/\s+/g, ' ').slice(0, 280)}` : undefined);
+  return { index: i + 1, total: sorted.length, previous: brief(sorted[i - 1]), next: brief(sorted[i + 1]) };
 }
