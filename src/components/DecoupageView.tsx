@@ -1,6 +1,6 @@
 import { Fragment, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { analyseShot, proposeShots } from '../lib/ai';
+import { adviseScene, analyseShot, proposeShots } from '../lib/ai';
 import { exportDecoupage } from '../lib/exportXlsx';
 import { emptyShot, shotCats, shotItems, shotNumber, shotsFromCameras } from '../lib/shots';
 import { CATEGORIES, MOVES, SIZES, type Project, type Scene, type Shot } from '../types';
@@ -32,6 +32,13 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
     } catch (e) { setMsg((e as Error).message); }
     setBusy(false);
   };
+  const advise = async () => {
+    if (scene.advice && !window.confirm('Remplacer les conseils actuels (y compris vos modifications) ?')) return;
+    setBusy(true); setMsg('');
+    try { updateScene(scene.id, { advice: await adviseScene(scene, project.roles.map((r) => r.name)) }); }
+    catch (e) { setMsg((e as Error).message); }
+    setBusy(false);
+  };
   const analyse = async (h: Shot) => {
     setBusy(true); setMsg('');
     try { edit(h.id, { categories: await analyseShot(scene, h, project.roles.map((r) => r.name)) }); setMsg('Proposition de l\'IA ajoutée (vos saisies sont conservées).'); }
@@ -57,6 +64,17 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
           <Button variant="outline" size="sm" className="ml-auto" disabled={!total} onClick={() => exportDecoupage(project)}>Exporter le découpage ({total} plans)</Button>
         </div>
         <details className="text-sm"><summary className="cursor-pointer text-neutral-600">Texte de la séquence</summary><pre className="mt-2 max-h-48 overflow-y-auto whitespace-pre-wrap rounded bg-white p-3 font-mono text-xs">{scene.text}</pre></details>
+        <div className="space-y-2 rounded border border-neutral-300 bg-white p-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <b className="text-sm">Assistance à la mise en scène</b>
+            <span className="text-xs text-neutral-500">socle : Eisenstein, <i>Leçons de mise en scène</i></span>
+            <Button variant="outline" size="sm" className="ml-auto" disabled={busy} onClick={advise}>{busy ? 'Analyse…' : scene.advice ? 'Régénérer' : 'Conseils de mise en scène (IA)'}</Button>
+          </div>
+          {(scene.advice || busy) && (
+            <textarea className="min-h-40 w-full rounded border border-neutral-300 p-2 text-sm" placeholder="Les conseils de l'IA apparaissent ici ; vous pouvez les modifier."
+              value={scene.advice ?? ''} onChange={(e) => updateScene(scene.id, { advice: e.target.value })} />
+          )}
+        </div>
         <div className="overflow-x-auto rounded border border-neutral-300 bg-white">
           <table className="w-full min-w-[900px] text-left">
             <thead className="bg-[#1F2433] text-[11px] uppercase tracking-wider text-white">

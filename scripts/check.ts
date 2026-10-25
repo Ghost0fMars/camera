@@ -4,6 +4,7 @@ import { cleanAnalysis, extractJson } from '../api/analyse';
 import { angleOf, arrowHead, nextCamera, ownerOf, shift } from '../src/lib/plan';
 import { allShots, emptyShot, shotItems, shotNumber, shotsFromCameras } from '../src/lib/shots';
 import type { Shape } from '../src/types';
+import { chapterTitle, chunkText, search } from '../api/_eisenstein.js';
 import { cleanShots } from '../api/decoupage';
 import { dayStats, fmtDur, parseDur, recap } from '../src/lib/planning';
 import { parseScript, parseSlug } from '../src/lib/screenplay';
@@ -85,4 +86,10 @@ assert.deepEqual(cleanShots({}), []);
 assert.equal(shotItems(emptyShot()), 0);
 assert.equal(shotItems(emptyShot({ categories: { ...emptyCategories(), accessoires: ['Clé', 'Téléphone'], son: ['Pas'] } })), 3);
 
+const corpus = chunkText('# PRÉFACE\n\nIntro.\n\n# CADRAGE\n\nLe gros plan accentue le moment de l’action. Le découpage articule la scène.\n\nLe panoramique suit le mouvement du comédien dans l’espace.\n\n# POSTFACE\n\nFin.');
+assert.deepEqual(corpus.map((c) => c.chapter), ['CADRAGE']);
+assert.equal(search(corpus, 'un gros plan pour accentuer', 3)[0].chapter, 'CADRAGE');
+assert.deepEqual(search(corpus, 'xyz inconnu', 3), []);
+assert.ok(chunkText('# A\n\n' + 'Une phrase assez longue pour remplir. '.repeat(200)).every((c) => c.text.length < 1300));
+assert.equal(chapterTitle('LES PROBLÈMES DU CADRAGE – LE DÉCOUPAGE EN PLANS'), 'Les problèmes du cadrage – le découpage en plans');
 console.log('OK');

@@ -44,3 +44,20 @@ export async function analyseShot(scene: Scene, shot: Shot, roles: string[]): Pr
   for (const k of Object.keys(cats) as (keyof Categories)[]) if (!cats[k].length) cats[k] = a.categories[k] ?? [];
   return cats;
 }
+
+/** Conseils de mise en scène (socle : Eisenstein) pour une séquence, avec l'état de son plan de scène. */
+export async function adviseScene(scene: Scene, roles: string[]): Promise<string> {
+  const plan = scene.plan ?? [];
+  const cams = plan.flatMap((p) => (p.kind === 'camera' ? [`${p.label} (axe ${p.angle}°)`] : []));
+  const chars = plan.flatMap((p) => (p.kind === 'char' ? [p.name] : []));
+  const moves = plan.flatMap((p) => (p.kind === 'move' && p.who ? [p.who] : []));
+  const desc = [cams.length && `caméras : ${cams.join(', ')}`, chars.length && `personnages placés : ${chars.join(', ')}`, moves.length && `déplacements de : ${moves.join(', ')}`].filter(Boolean).join(' ; ');
+  const res = await fetch('/api/mise-en-scene', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: scene.text, decor: scene.decor, roles, plan: desc }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
+  return data.advice as string;
+}

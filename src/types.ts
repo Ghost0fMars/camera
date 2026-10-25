@@ -64,6 +64,7 @@ export interface Scene {
   roles: string[];         // noms de personnages (clés de Project.roles)
   categories: Categories;
   continuity: string;
+  advice?: string;         // conseils de mise en scène (IA, socle Eisenstein), modifiables
   notes: string;
   dayId: string | null;
   plan?: Shape[];          // plan de scène vue du dessus
