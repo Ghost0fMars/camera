@@ -4,6 +4,7 @@ import { cleanAnalysis, extractJson } from '../api/analyse';
 import { angleOf, arrowHead, nextCamera, ownerOf, shift } from '../src/lib/plan';
 import { allShots, emptyShot, shotNumber, shotsFromCameras } from '../src/lib/shots';
 import type { Shape } from '../src/types';
+import { cleanShots } from '../api/decoupage';
 import { dayStats, fmtDur, parseDur, recap } from '../src/lib/planning';
 import { parseScript, parseSlug } from '../src/lib/screenplay';
 import { EMPTY_PROJECT } from '../src/types';
@@ -74,5 +75,11 @@ assert.equal(shotNumber(sc, 0), '2.1');
 assert.equal(shotsFromCameras(sc).length, 0);
 assert.equal(shotsFromCameras({ ...sc, shots: [] }).map((h) => h.camera).join(), 'Cam 1');
 assert.deepEqual(allShots([p.scenes[0], sc]).map((x) => x.n), ['2.1']);
+
+const cs = cleanShots(extractJson('{"shots":[{"size":"GP","move":"Fixe","description":" Vincent regarde. "},{"description":""},"x",{"size":"PE","description":"Rue","camera":"Cam 1"}]}'));
+assert.equal(cs.length, 2);
+assert.deepEqual(cs[0], { size: 'GP', move: 'Fixe', lens: '', camera: '', description: 'Vincent regarde.', notes: '' });
+assert.equal(cs[1].camera, 'Cam 1');
+assert.deepEqual(cleanShots({}), []);
 
 console.log('OK');

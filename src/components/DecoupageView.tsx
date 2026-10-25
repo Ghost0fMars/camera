@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { proposeShots } from '../lib/ai';
 import { exportDecoupage } from '../lib/exportXlsx';
 import { emptyShot, shotNumber, shotsFromCameras } from '../lib/shots';
 import { MOVES, SIZES, type Project, type Scene, type Shot } from '../types';
@@ -8,6 +10,8 @@ const cell = 'w-full rounded border border-transparent bg-transparent px-1.5 py-
 export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
   project: Project; sceneId: string | null; onSelect: (id: string) => void; updateScene: (id: string, patch: Partial<Scene>) => void;
 }) {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
   const sorted = [...project.scenes].sort((a, b) => a.number - b.number);
   const scene = sorted.find((s) => s.id === sceneId) ?? sorted[0];
   if (!scene) return <p className="text-sm text-neutral-500">Importez d'abord un scénario.</p>;
@@ -16,7 +20,16 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
   const set = (next: Shot[]) => updateScene(scene.id, { shots: next });
   const edit = (id: string, patch: Partial<Shot>) => set(shots.map((h) => (h.id === id ? { ...h, ...patch } : h)));
   const swap = (i: number, j: number) => { const n = [...shots]; [n[i], n[j]] = [n[j], n[i]]; set(n); };
-  const fromCams = shotsFromCameras(scene);
+  const propose = async () => {
+    setBusy(true); setMsg('');
+    try {
+      const added = await proposeShots(scene, project.roles.map((r) => r.name));
+      set([...shots, ...added]);
+      setMsg(`${added.length} plans proposés par l'IA, ajoutés à la suite de votre liste.`);
+    } catch (e) { setMsg((e as Error).message); }
+    setBusy(false);
+  };
+  const fromCams =shotsFromCameras(scene);
   const total = project.scenes.reduce((n, s) => n + (s.shots?.length ?? 0), 0);
 
   return (
@@ -61,10 +74,12 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
             </tbody>
           </table>
         </div>
+        {msg && <p className="text-sm text-neutral-600">{msg}</p>}
         <datalist id="tailles">{SIZES.map((s) => <option key={s} value={s} />)}</datalist>
         <datalist id="mouvements">{MOVES.map((m) => <option key={m} value={m} />)}</datalist>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => set([...shots, emptyShot()])}>+ Ajouter un plan</Button>
+          <Button variant="outline" size="sm" disabled={busy} onClick={propose}>{busy ? 'Analyse…' : 'Proposer un découpage (IA)'}</Button>
           <Button variant="outline" size="sm" disabled={!fromCams.length} onClick={() => set([...shots, ...fromCams])}>
             Créer depuis les caméras du plan ({fromCams.length})
           </Button>
