@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import { cleanAnalysis, extractJson } from '../api/analyse';
 import { angleOf, arrowHead, nextCamera, ownerOf, shift } from '../src/lib/plan';
+import { allShots, emptyShot, shotNumber, shotsFromCameras } from '../src/lib/shots';
 import type { Shape } from '../src/types';
 import { dayStats, fmtDur, parseDur, recap } from '../src/lib/planning';
 import { parseScript, parseSlug } from '../src/lib/screenplay';
@@ -67,5 +68,11 @@ assert.equal(ownerOf(cast, { x: 300, y: 300 }), undefined);
 assert.equal(ownerOf(cast, { x: 300, y: 300 }, 'Clémence'), 'Clémence');
 assert.equal(arrowHead([{ x: 0, y: 0 }, { x: 100, y: 0 }]).split(' ')[0], '100,0');
 assert.equal(nextCamera([{ id: 'c', kind: 'camera', at: { x: 0, y: 0 }, angle: 0, label: 'Cam 1' }]), 'Cam 2');
+
+const sc = { ...p.scenes[1], plan: cast, shots: [emptyShot({ camera: 'Cam 1' })] };
+assert.equal(shotNumber(sc, 0), '2.1');
+assert.equal(shotsFromCameras(sc).length, 0);
+assert.equal(shotsFromCameras({ ...sc, shots: [] }).map((h) => h.camera).join(), 'Cam 1');
+assert.deepEqual(allShots([p.scenes[0], sc]).map((x) => x.n), ['2.1']);
 
 console.log('OK');

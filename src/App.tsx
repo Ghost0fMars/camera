@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { exportDepouillement, exportPlanTravail } from './lib/exportXlsx';
 import { useProject } from './lib/useProject';
+import { DecoupageView } from './components/DecoupageView';
 import { DessusView } from './components/DessusView';
 import { FicheView } from './components/FicheView';
 import { ImportView } from './components/ImportView';
@@ -16,6 +17,7 @@ const TABS = [
   { id: 'fiche', label: 'Dépouillement' },
   { id: 'plan', label: 'Plan de travail' },
   { id: 'dessus', label: 'Vue du dessus' },
+  { id: 'decoupage', label: 'Découpage technique' },
 ] as const;
 type Tab = (typeof TABS)[number]['id'];
 
@@ -52,6 +54,7 @@ export default function App() {
         {tab === 'sequencier' && <SequencierView project={project} updateScene={updateScene} onOpen={(id) => { setSceneId(id); setTab('fiche'); }} />}
         {tab === 'fiche' && <FicheView project={project} sceneId={sceneId} onSelect={setSceneId} updateScene={updateScene} />}
         {tab === 'plan' && <PlanView project={project} update={update} updateScene={updateScene} />}
+        {tab === 'decoupage' && <DecoupageView project={project} sceneId={sceneId} onSelect={setSceneId} updateScene={updateScene} />}
         {tab === 'dessus' && <DessusView project={project} sceneId={sceneId} onSelect={setSceneId} updateScene={updateScene} />}
       </main>
     </div>

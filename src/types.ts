@@ -36,6 +36,20 @@ export type Shape = { id: string } & (
   | { kind: 'text'; at: Pt; text: string }
 );
 
+export const SIZES = ['PG', 'PE', 'PA', 'PM', 'PR', 'GP', 'TGP', 'Insert'] as const;
+export const MOVES = ['Fixe', 'Panoramique', 'Travelling', 'Épaule', 'Steadicam', 'Zoom', 'Grue / drone'] as const;
+
+/** Un plan du découpage technique. Son numéro est « séquence.rang » (ex. 2.3). */
+export interface Shot {
+  id: string;
+  size: string;            // valeur de SIZES (ou saisie libre)
+  move: string;            // valeur de MOVES (ou saisie libre)
+  lens: string;            // optique, ex. « 35 mm »
+  camera: string;          // « Cam 1 », lié au plan de scène
+  description: string;
+  notes: string;
+}
+
 export interface Scene {
   id: string;
   number: number;
@@ -52,6 +66,7 @@ export interface Scene {
   notes: string;
   dayId: string | null;
   plan?: Shape[];          // plan de scène vue du dessus
+  shots?: Shot[];          // découpage technique
 }
 
 export interface Role { name: string; actor: string }
