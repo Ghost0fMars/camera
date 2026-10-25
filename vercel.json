@@ -4,6 +4,7 @@
   "outputDirectory": "dist",
   "installCommand": "npm install",
   "functions": {
-    "api/*.ts": { "maxDuration": 60, "includeFiles": "data/**" }
+    "api/*.ts": { "maxDuration": 60, "includeFiles": "data/**" },
+    "api/locate.ts": { "maxDuration": 300 }
   }
 }
