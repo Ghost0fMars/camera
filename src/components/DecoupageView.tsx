@@ -1,144 +1,259 @@
-import { Fragment, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { ChevronDown, ChevronRight, ChevronUp, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FrameAnalysis } from './FrameAnalysis';
 import { adviseScene, analyseShot, proposeShots } from '../lib/ai';
 import { exportDecoupage } from '../lib/exportXlsx';
 import { emptyShot, shotCats, shotItems, shotNumber, shotsFromCameras } from '../lib/shots';
-import { CATEGORIES, MOVES, SIZES, type Project, type Scene, type Shot } from '../types';
+import { CATEGORIES, MOVES, SIZES, SIZE_NAMES, type CategoryKey, type Project, type Scene, type Shot } from '../types';
 
 const lines = (v: string) => v.split('\n').map((x) => x.trim()).filter(Boolean);
+const plural = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`;
 
-const cell = 'w-full rounded border border-transparent bg-transparent px-1.5 py-1 text-sm hover:border-neutral-300 focus:border-neutral-500 focus:bg-white focus:outline-none';
+const field = 'w-full rounded border border-neutral-400 bg-white px-2 py-1.5 text-sm focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#222831]';
+const label = 'mb-1 block text-xs font-medium text-neutral-700';
+const iconBtn = 'inline-flex size-9 items-center justify-center rounded border border-transparent text-neutral-700 hover:border-neutral-400 hover:bg-neutral-100 disabled:opacity-30 pointer-coarse:size-11';
+const primary = 'bg-[#222831] text-white hover:bg-[#393E46]';
+
+type Note = { text: string; error?: boolean; retry?: () => void };
+type Undo = { text: string; restore: () => void };
 
 export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
   project: Project; sceneId: string | null; onSelect: (id: string) => void; updateScene: (id: string, patch: Partial<Scene>) => void;
 }) {
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState('');
-  const [open, setOpen] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [note, setNote] = useState<Note | null>(null);
+  const [undo, setUndo] = useState<Undo | null>(null);
   const [frameOpen, setFrameOpen] = useState<string | null>(null);
+  const [open, setOpen] = useState<string | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const sorted = [...project.scenes].sort((a, b) => a.number - b.number);
   const scene = sorted.find((s) => s.id === sceneId) ?? sorted[0];
-  if (!scene) return <p className="text-sm text-neutral-500">Importez d'abord un scénario.</p>;
+  const shots = scene?.shots ?? [];
+  const shotsRef = useRef(shots);
+  shotsRef.current = shots;
+  useEffect(() => () => clearTimeout(timer.current), []);
+  if (!scene) return <p className="text-sm text-neutral-600">Importez d'abord un scénario.</p>;
 
-  const shots = scene.shots ?? [];
   const set = (next: Shot[]) => updateScene(scene.id, { shots: next });
-  const edit = (id: string, patch: Partial<Shot>) => set(shots.map((h) => (h.id === id ? { ...h, ...patch } : h)));
+  const edit = (id: string, patch: Partial<Shot>) => set(shotsRef.current.map((h) => (h.id === id ? { ...h, ...patch } : h)));
   const swap = (i: number, j: number) => { const n = [...shots]; [n[i], n[j]] = [n[j], n[i]]; set(n); };
-  const propose = async () => {
-    setBusy(true); setMsg('');
-    try {
-      const added = await proposeShots(scene, project.roles.map((r) => r.name), project.scenes);
-      set([...shots, ...added]);
-      setMsg(`${added.length} plans proposés par l'IA, ajoutés à la suite de votre liste.`);
-    } catch (e) { setMsg((e as Error).message); }
-    setBusy(false);
+  const offerUndo = (u: Undo) => { clearTimeout(timer.current); setUndo(u); timer.current = setTimeout(() => setUndo(null), 8000); };
+  const roles = project.roles.map((r) => r.name);
+
+  const run = async (key: string, task: () => Promise<string | void>) => {
+    setBusy(key); setNote(null);
+    try { const text = await task(); if (text) setNote({ text }); }
+    catch (e) { setNote({ text: (e as Error).message, error: true, retry: () => void run(key, task) }); }
+    setBusy(null);
   };
-  const advise = async () => {
-    if (scene.advice && !window.confirm('Remplacer les conseils actuels (y compris vos modifications) ?')) return;
-    setBusy(true); setMsg('');
-    try { updateScene(scene.id, { advice: await adviseScene(scene, project.roles.map((r) => r.name), project.scenes) }); }
-    catch (e) { setMsg((e as Error).message); }
-    setBusy(false);
+
+  const remove = (h: Shot, i: number) => {
+    set(shots.filter((x) => x.id !== h.id));
+    offerUndo({ text: `Plan ${shotNumber(scene, i)} supprimé.`, restore: () => { const n = [...shotsRef.current]; n.splice(Math.min(i, n.length), 0, h); set(n); } });
   };
-  const analyse = async (h: Shot) => {
-    setBusy(true); setMsg('');
-    try { edit(h.id, { categories: await analyseShot(scene, h, project.roles.map((r) => r.name)) }); setMsg('Proposition de l\'IA ajoutée (vos saisies sont conservées).'); }
-    catch (e) { setMsg((e as Error).message); }
-    setBusy(false);
+  const propose = () => run('propose', async () => {
+    const added = await proposeShots(scene, roles, project.scenes);
+    set([...shotsRef.current, ...added]);
+    const ids = new Set(added.map((a) => a.id));
+    offerUndo({ text: `${plural(added.length, 'plan')} proposé${added.length > 1 ? 's' : ''} par l'IA.`, restore: () => set(shotsRef.current.filter((x) => !ids.has(x.id))) });
+  });
+  const advise = () => run('advise', async () => {
+    const before = scene.advice;
+    updateScene(scene.id, { advice: await adviseScene(scene, roles, project.scenes) });
+    if (before) offerUndo({ text: 'Conseils remplacés.', restore: () => updateScene(scene.id, { advice: before }) });
+  });
+  const analyse = (h: Shot) => run(`dep:${h.id}`, async () => {
+    edit(h.id, { categories: await analyseShot(scene, h, roles) });
+    return 'Proposition de l\'IA ajoutée dans les rubriques vides ; vos saisies sont conservées.';
+  });
+  const dropIa = () => {
+    const removed = shots.flatMap((h, i) => (h.origin === 'ia' ? [{ h, i }] : []));
+    set(shots.filter((h) => h.origin !== 'ia'));
+    offerUndo({ text: `${plural(removed.length, 'plan')} proposé${removed.length > 1 ? 's' : ''} par l'IA retiré${removed.length > 1 ? 's' : ''}.`, restore: () => { const n = [...shotsRef.current]; removed.forEach(({ h, i }) => n.splice(Math.min(i, n.length), 0, h)); set(n); } });
   };
-  const fromCams =shotsFromCameras(scene);
+
+  const fromCams = shotsFromCameras(scene);
   const total = project.scenes.reduce((n, s) => n + (s.shots?.length ?? 0), 0);
+  const iaCount = shots.filter((h) => h.origin === 'ia').length;
+  const anyBusy = busy !== null;
 
   return (
     <div className="grid gap-5 lg:grid-cols-[14rem_1fr]">
-      <nav className="max-h-[75vh] space-y-1 overflow-y-auto">
+      <nav aria-label="Séquences" className="flex gap-1 overflow-x-auto pb-1 lg:block lg:max-h-[75vh] lg:space-y-1 lg:overflow-y-auto lg:pb-0">
         {sorted.map((s) => (
-          <button key={s.id} onClick={() => onSelect(s.id)}
-            className={`block w-full rounded px-2 py-1.5 text-left text-sm ${s.id === scene.id ? 'bg-[#FFD369] font-semibold' : 'hover:bg-neutral-200'}`}>
+          <button key={s.id} onClick={() => onSelect(s.id)} aria-current={s.id === scene.id ? 'true' : undefined}
+            className={`block shrink-0 whitespace-nowrap rounded px-3 py-2 text-left text-sm lg:w-full lg:whitespace-normal ${s.id === scene.id ? 'bg-[#FFD369] font-semibold' : 'hover:bg-neutral-200'}`}>
             {s.number} · {s.decor}{s.shots?.length ? ` (${s.shots.length})` : ''}
           </button>
         ))}
       </nav>
-      <div className="space-y-3">
+
+      <div className="min-w-0 space-y-4">
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="font-serif text-xl italic">Séquence {scene.number} · {scene.decor} · {scene.ie} · {scene.effect}</h2>
-          <Button variant="outline" size="sm" className="ml-auto" disabled={!total} onClick={() => exportDecoupage(project)}>Exporter le découpage ({total} plans)</Button>
-        </div>
-        <details className="text-sm"><summary className="cursor-pointer text-neutral-600">Texte de la séquence</summary><pre className="mt-2 max-h-48 overflow-y-auto whitespace-pre-wrap rounded bg-white p-3 font-mono text-xs">{scene.text}</pre></details>
-        <div className="space-y-2 rounded border border-neutral-300 bg-white p-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <b className="text-sm">Assistance à la mise en scène</b>
-            <span className="text-xs text-neutral-500">socle : Eisenstein, <i>Leçons de mise en scène</i></span>
-            <Button variant="outline" size="sm" className="ml-auto" disabled={busy} onClick={advise}>{busy ? 'Analyse…' : scene.advice ? 'Régénérer' : 'Conseils de mise en scène (IA)'}</Button>
-          </div>
-          {(scene.advice || busy) && (
-            <textarea className="min-h-40 w-full rounded border border-neutral-300 p-2 text-sm" placeholder="Les conseils de l'IA apparaissent ici ; vous pouvez les modifier."
-              value={scene.advice ?? ''} onChange={(e) => updateScene(scene.id, { advice: e.target.value })} />
-          )}
-        </div>
-        <div className="overflow-x-auto rounded border border-neutral-300 bg-white">
-          <table className="w-full min-w-[900px] text-left">
-            <thead className="bg-[#1F2433] text-[11px] uppercase tracking-wider text-white">
-              <tr>{['Plan', 'Taille', 'Mouvement', 'Optique', 'Caméra', 'Description', 'Notes', ''].map((h) => <th key={h} className="px-2 py-2 font-semibold">{h}</th>)}</tr>
-            </thead>
-            <tbody>
-              {shots.map((h, i) => (
-                <Fragment key={h.id}>
-                <tr className="border-t border-neutral-200 align-top">
-                  <td className="whitespace-nowrap px-2 py-1.5 text-sm font-semibold">{shotNumber(scene, i)}</td>
-                  <td><input className={cell} list="tailles" value={h.size} onChange={(e) => edit(h.id, { size: e.target.value })} /></td>
-                  <td><input className={cell} list="mouvements" value={h.move} onChange={(e) => edit(h.id, { move: e.target.value })} /></td>
-                  <td className="w-24"><input className={cell} placeholder="35 mm" value={h.lens} onChange={(e) => edit(h.id, { lens: e.target.value })} /></td>
-                  <td className="w-24"><input className={cell} placeholder="Cam 1" value={h.camera} onChange={(e) => edit(h.id, { camera: e.target.value })} /></td>
-                  <td className="min-w-64"><textarea className={`${cell} min-h-9`} value={h.description} onChange={(e) => edit(h.id, { description: e.target.value })} /></td>
-                  <td className="min-w-40"><textarea className={`${cell} min-h-9`} value={h.notes} onChange={(e) => edit(h.id, { notes: e.target.value })} /></td>
-                  <td className="whitespace-nowrap px-1 text-sm">
-                    <button title="Analyse du cadre" onClick={() => setFrameOpen(frameOpen === h.id ? null : h.id)}
-                      className={`mr-1 rounded px-1.5 text-xs ${frameOpen === h.id ? 'bg-[#FFD369] font-semibold' : 'bg-neutral-100 hover:bg-neutral-200'}`}>Cadre{h.frame ? ' ✓' : ''}</button>
-                    <button title="Dépouillement du plan" onClick={() => setOpen(open === h.id ? null : h.id)}
-                      className={`mr-1 rounded px-1.5 text-xs ${open === h.id ? 'bg-[#FFD369] font-semibold' : 'bg-neutral-100 hover:bg-neutral-200'}`}>Dép.{shotItems(h) ? ` (${shotItems(h)})` : ''}</button>
-                    <button title="Monter" disabled={!i} onClick={() => swap(i, i - 1)} className="px-1 disabled:opacity-30">↑</button>
-                    <button title="Descendre" disabled={i === shots.length - 1} onClick={() => swap(i, i + 1)} className="px-1 disabled:opacity-30">↓</button>
-                    <button title="Supprimer" onClick={() => set(shots.filter((x) => x.id !== h.id))} className="px-1 text-red-700">✕</button>
-                  </td>
-                </tr>
-                {open === h.id && (
-                  <tr className="bg-neutral-50"><td colSpan={8} className="px-3 py-3">
-                    <div className="mb-2 flex items-center gap-3">
-                      <b className="text-sm">Dépouillement du plan {shotNumber(scene, i)}</b>
-                      <Button variant="outline" size="sm" disabled={busy} onClick={() => analyse(h)}>{busy ? 'Analyse…' : 'Dépouiller ce plan (IA)'}</Button>
-                    </div>
-                    <div className="grid gap-3 md:grid-cols-3">
-                      {CATEGORIES.map((c) => (
-                        <label key={c.key} className="block">
-                          <span className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-neutral-500">{c.label}</span>
-                          <textarea className="min-h-14 w-full rounded border border-neutral-300 bg-white p-1.5 text-sm" placeholder="Un élément par ligne"
-                            value={shotCats(h)[c.key].join('\n')}
-                            onChange={(e) => edit(h.id, { categories: { ...shotCats(h), [c.key]: e.target.value.split('\n') } })}
-                            onBlur={(e) => edit(h.id, { categories: { ...shotCats(h), [c.key]: lines(e.target.value) } })} />
-                        </label>
-                      ))}
-                    </div>
-                  </td></tr>
-                )}
-                {frameOpen === h.id && <tr className="bg-neutral-50"><td colSpan={8} className="px-3 py-3"><FrameAnalysis shot={h} edit={(patch) => edit(h.id, patch)} /></td></tr>}
-                </Fragment>
-              ))}
-              {!shots.length && <tr><td colSpan={8} className="px-3 py-4 text-sm text-neutral-500">Aucun plan. Ajoutez-en un, ou créez-les depuis les caméras de la vue du dessus.</td></tr>}
-            </tbody>
-          </table>
-        </div>
-        {msg && <p className="text-sm text-neutral-600">{msg}</p>}
-        <datalist id="tailles">{SIZES.map((s) => <option key={s} value={s} />)}</datalist>
-        <datalist id="mouvements">{MOVES.map((m) => <option key={m} value={m} />)}</datalist>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={() => set([...shots, emptyShot()])}>+ Ajouter un plan</Button>
-          <Button variant="outline" size="sm" disabled={busy} onClick={propose}>{busy ? 'Analyse…' : 'Proposer un découpage (IA)'}</Button>
-          <Button variant="outline" size="sm" disabled={!fromCams.length} onClick={() => set([...shots, ...fromCams])}>
-            Créer depuis les caméras du plan ({fromCams.length})
+          <Button variant="outline" size="sm" className="ml-auto" disabled={!total} onClick={() => exportDecoupage(project)}>
+            Exporter tous les plans du film (Excel){total ? ` · ${total}` : ''}
           </Button>
         </div>
+
+        <details className="text-sm"><summary className="cursor-pointer py-1 text-neutral-700">Texte de la séquence</summary><pre className="mt-2 max-h-48 overflow-y-auto whitespace-pre-wrap rounded bg-white p-3 font-mono text-xs">{scene.text}</pre></details>
+
+        <section aria-labelledby="mes" className="space-y-2 rounded border border-neutral-300 bg-white p-3">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <h3 id="mes" className="text-sm font-semibold">Assistance à la mise en scène</h3>
+            <span className="text-xs text-neutral-600">Socle : Eisenstein, <i>Leçons de mise en scène</i>, et l'intégrale dramatique</span>
+            <Button variant="outline" size="sm" className="ml-auto" disabled={anyBusy} onClick={advise}>
+              {busy === 'advise' ? 'Analyse en cours…' : scene.advice ? 'Régénérer les conseils' : 'Conseils de mise en scène (IA)'}
+            </Button>
+          </div>
+          {(scene.advice || busy === 'advise') && (
+            <textarea aria-label="Conseils de mise en scène" className={`${field} min-h-40`} placeholder="Les conseils de l'IA apparaissent ici ; vous pouvez les modifier."
+              value={scene.advice ?? ''} onChange={(e) => updateScene(scene.id, { advice: e.target.value })} />
+          )}
+        </section>
+
+        <section aria-labelledby="plans" className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 id="plans" className="mr-auto text-base font-semibold">Plans de la séquence · {shots.length}</h3>
+            <Button size="sm" className={primary} onClick={() => set([...shots, emptyShot()])}>+ Ajouter un plan</Button>
+            <Button variant="outline" size="sm" disabled={anyBusy} onClick={propose}>{busy === 'propose' ? 'Analyse en cours…' : 'Proposer un découpage (IA)'}</Button>
+            <Button variant="outline" size="sm" disabled={!fromCams.length} onClick={() => set([...shots, ...fromCams])}>Un plan par caméra du plan de scène ({fromCams.length})</Button>
+          </div>
+          <p className="text-sm text-neutral-600">
+            « Proposer » ajoute des plans à la suite de votre liste ; vous les gardez ou les retirez.
+            {!fromCams.length && ' Pour créer des plans depuis les caméras, posez-en dans la vue du dessus.'}
+          </p>
+
+          <div role="status" aria-live="polite" className="space-y-2 empty:hidden">
+            {note && (
+              <p className={`flex flex-wrap items-center gap-3 rounded border px-3 py-2 text-sm ${note.error ? 'border-red-300 bg-red-50 text-red-800' : 'border-neutral-300 bg-white text-neutral-800'}`}>
+                <span>{note.text}</span>
+                {note.retry && <button onClick={note.retry} className="font-semibold underline underline-offset-2">Réessayer</button>}
+              </p>
+            )}
+            {undo && (
+              <p className="flex flex-wrap items-center gap-3 rounded border border-neutral-700 bg-[#222831] px-3 py-2 text-sm text-white">
+                <span>{undo.text}</span>
+                <button onClick={() => { undo.restore(); setUndo(null); }} className="font-semibold underline underline-offset-2">Annuler</button>
+              </p>
+            )}
+          </div>
+
+          {iaCount > 0 && (
+            <p className="flex flex-wrap items-center gap-3 text-sm">
+              <span>{plural(iaCount, 'plan')} proposé{iaCount > 1 ? 's' : ''} par l'IA, pas encore gardé{iaCount > 1 ? 's' : ''}.</span>
+              <button onClick={() => set(shots.map((h) => ({ ...h, origin: undefined })))} className="px-1 py-1.5 font-semibold underline underline-offset-2">Tout garder</button>
+              <button onClick={dropIa} className="px-1 py-1.5 font-semibold text-red-800 underline underline-offset-2">Tout retirer</button>
+            </p>
+          )}
+
+          {shots.length === 0 ? (
+            <div className="rounded border border-dashed border-neutral-400 bg-white px-4 py-6 text-sm text-neutral-700">
+              Aucun plan pour cette séquence. Ajoutez-en un, demandez une proposition à l'IA, ou créez-les depuis les caméras de la vue du dessus.
+            </div>
+          ) : (
+            <ol className="space-y-3">
+              {shots.map((h, i) => {
+                const n = shotNumber(scene, i);
+                const items = shotItems(h);
+                return (
+                  <li key={h.id} className="rounded border border-neutral-300 bg-white">
+                    <div className="flex flex-wrap items-center gap-2 px-3 pt-2">
+                      <span className="text-sm font-semibold">Plan {n}</span>
+                      {h.origin === 'ia' ? (
+                        <>
+                          <span className="rounded border border-neutral-700 px-1.5 text-xs">Proposé par l'IA</span>
+                          <button onClick={() => edit(h.id, { origin: undefined })} className="text-xs font-semibold underline underline-offset-2">Garder</button>
+                        </>
+                      ) : !h.description.trim() && <span className="text-xs text-neutral-600">À décrire</span>}
+                      <span className="ml-auto flex items-center gap-0.5">
+                        <button aria-label={`Monter le plan ${n}`} title="Monter" disabled={!i} onClick={() => swap(i, i - 1)} className={iconBtn}><ChevronUp className="size-4" aria-hidden /></button>
+                        <button aria-label={`Descendre le plan ${n}`} title="Descendre" disabled={i === shots.length - 1} onClick={() => swap(i, i + 1)} className={iconBtn}><ChevronDown className="size-4" aria-hidden /></button>
+                        <span className="mx-1 h-5 w-px bg-neutral-300" aria-hidden />
+                        <button aria-label={`Supprimer le plan ${n}`} title="Supprimer" onClick={() => remove(h, i)} className={`${iconBtn} text-red-800 hover:border-red-300 hover:bg-red-50`}><Trash2 className="size-4" aria-hidden /></button>
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 p-3 sm:grid-cols-4 lg:grid-cols-[7rem_9rem_6rem_6rem_minmax(0,1fr)_minmax(0,1fr)]">
+                      <label><span className={label}>Taille</span><input className={field} list="tailles" placeholder="PM" value={h.size} onChange={(e) => edit(h.id, { size: e.target.value })} /></label>
+                      <label><span className={label}>Mouvement</span><input className={field} list="mouvements" placeholder="Fixe" value={h.move} onChange={(e) => edit(h.id, { move: e.target.value })} /></label>
+                      <label><span className={label}>Optique</span><input className={field} placeholder="35 mm" value={h.lens} onChange={(e) => edit(h.id, { lens: e.target.value })} /></label>
+                      <label><span className={label}>Caméra</span><input className={field} placeholder="Cam 1" value={h.camera} onChange={(e) => edit(h.id, { camera: e.target.value })} /></label>
+                      <label className="col-span-2 sm:col-span-4 lg:col-span-1"><span className={label}>Description</span><textarea className={`${field} field-sizing-content min-h-16 resize-none`} value={h.description} onChange={(e) => edit(h.id, { description: e.target.value })} /></label>
+                      <label className="col-span-2 sm:col-span-4 lg:col-span-1"><span className={label}>Notes</span><textarea className={`${field} field-sizing-content min-h-16 resize-none`} value={h.notes} onChange={(e) => edit(h.id, { notes: e.target.value })} /></label>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 border-t border-neutral-200 px-3 py-2">
+                      <button aria-expanded={frameOpen === h.id} aria-controls={`cadre-${h.id}`} onClick={() => setFrameOpen(frameOpen === h.id ? null : h.id)}
+                        className="inline-flex min-h-9 items-center gap-1 rounded border border-neutral-400 px-2.5 text-sm hover:bg-neutral-100 pointer-coarse:min-h-11">
+                        {frameOpen === h.id ? <ChevronDown className="size-4" aria-hidden /> : <ChevronRight className="size-4" aria-hidden />}
+                        Analyse du cadre{h.frame ? ' · image analysée' : ''}
+                      </button>
+                      <button aria-expanded={open === h.id} aria-controls={`dep-${h.id}`} onClick={() => setOpen(open === h.id ? null : h.id)}
+                        className="inline-flex min-h-9 items-center gap-1 rounded border border-neutral-400 px-2.5 text-sm hover:bg-neutral-100 pointer-coarse:min-h-11">
+                        {open === h.id ? <ChevronDown className="size-4" aria-hidden /> : <ChevronRight className="size-4" aria-hidden />}
+                        Dépouillement du plan{items ? ` · ${plural(items, 'élément')}` : ''}
+                      </button>
+                    </div>
+
+                    {frameOpen === h.id && <div id={`cadre-${h.id}`} className="border-t border-neutral-200 bg-neutral-50 px-3 py-3"><FrameAnalysis shot={h} edit={(patch) => edit(h.id, patch)} /></div>}
+                    {open === h.id && (
+                      <div id={`dep-${h.id}`} className="border-t border-neutral-200 bg-neutral-50 px-3 py-3">
+                        <Breakdown shot={h} busy={busy === `dep:${h.id}`} disabled={anyBusy} onAi={() => analyse(h)} onChange={(categories) => edit(h.id, { categories })} />
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+
+          <details className="text-sm text-neutral-700"><summary className="cursor-pointer py-1">Légende des valeurs de plan</summary>
+            <p className="mt-1">{SIZES.map((s) => `${s} ${SIZE_NAMES[s].toLowerCase()}`).join(' · ')}</p>
+          </details>
+        </section>
+
+        <datalist id="tailles">{SIZES.map((s) => <option key={s} value={s} label={SIZE_NAMES[s]} />)}</datalist>
+        <datalist id="mouvements">{MOVES.map((m) => <option key={m} value={m} />)}</datalist>
+      </div>
+    </div>
+  );
+}
+
+/** Dépouillement d'un plan : seules les rubriques remplies (ou ajoutées) sont affichées. */
+function Breakdown({ shot, busy, disabled, onAi, onChange }: {
+  shot: Shot; busy: boolean; disabled: boolean; onAi: () => void; onChange: (c: ReturnType<typeof shotCats>) => void;
+}) {
+  const cats = shotCats(shot);
+  const [added, setAdded] = useState<CategoryKey[]>([]);
+  const shown = CATEGORIES.filter((c) => cats[c.key].length > 0 || added.includes(c.key));
+  const rest = CATEGORIES.filter((c) => !shown.includes(c));
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <Button variant="outline" size="sm" disabled={disabled} onClick={onAi}>{busy ? 'Analyse en cours…' : 'Dépouiller ce plan (IA)'}</Button>
+        {rest.length > 0 && (
+          <label className="flex items-center gap-2 text-sm">
+            <span className="sr-only">Ajouter une rubrique</span>
+            <select className={`${field} w-auto`} value="" onChange={(e) => e.target.value && setAdded([...added, e.target.value as CategoryKey])}>
+              <option value="">+ Ajouter une rubrique…</option>
+              {rest.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+            </select>
+          </label>
+        )}
+      </div>
+      {shown.length === 0 && <p className="text-sm text-neutral-600">Aucune rubrique remplie. Ajoutez-en une, ou laissez l'IA proposer.</p>}
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {shown.map((c) => (
+          <label key={c.key} className="block">
+            <span className={label}>{c.label}</span>
+            <textarea className={`${field} field-sizing-content min-h-14 resize-none`} placeholder="Un élément par ligne"
+              value={cats[c.key].join('\n')}
+              onChange={(e) => onChange({ ...cats, [c.key]: e.target.value.split('\n') })}
+              onBlur={(e) => onChange({ ...cats, [c.key]: lines(e.target.value) })} />
+          </label>
+        ))}
       </div>
     </div>
   );

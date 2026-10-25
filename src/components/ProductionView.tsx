@@ -1,7 +1,7 @@
 import { Input } from '@/components/ui/input';
 import type { Project } from '../types';
 
-const L = ({ children }: { children: string }) => <span className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-neutral-500">{children}</span>;
+const L = ({ children }: { children: string }) => <span className="mb-1 block text-xs font-bold uppercase tracking-widest text-neutral-500">{children}</span>;
 
 export function ProductionView({ project, update }: { project: Project; update: (p: Partial<Project>) => void }) {
   const setActor = (name: string, actor: string) => update({ roles: project.roles.map((r) => (r.name === name ? { ...r, actor } : r)) });

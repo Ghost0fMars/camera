@@ -2,7 +2,7 @@ import { emptyCategories, type Categories, type Scene, type Shot } from '../type
 import { newId } from './planning';
 
 export const emptyShot = (patch: Partial<Shot> = {}): Shot =>
-  ({ id: newId('h'), size: 'PM', move: 'Fixe', lens: '', camera: '', description: '', notes: '', ...patch });
+  ({ id: newId('h'), size: '', move: '', lens: '', camera: '', description: '', notes: '', ...patch });
 
 /** « 2.3 » : séquence 2, plan n° 3. */
 export const shotNumber = (s: Scene, i: number) => `${s.number}.${i + 1}`;

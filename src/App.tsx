@@ -34,20 +34,33 @@ export default function App() {
     <div className="min-h-screen bg-[#EEEEEE] text-[#222831]">
       <header className="flex flex-wrap items-center gap-x-6 gap-y-2 bg-[#222831] px-5 py-3 text-white">
         <h1 className="font-serif text-xl italic text-[#FFD369]">Caméra</h1>
-        <nav className="flex flex-wrap gap-1">
+        <nav aria-label="Sections" className="hidden flex-wrap gap-1 md:flex">
           {TABS.map((t) => (
-            <button key={t.id} onClick={() => setTab(t.id)}
+            <button key={t.id} onClick={() => setTab(t.id)} aria-current={tab === t.id ? 'page' : undefined}
               className={`rounded px-3 py-1.5 text-xs uppercase tracking-widest ${tab === t.id ? 'bg-[#FFD369] font-bold text-[#222831]' : 'hover:bg-white/10'}`}>{t.label}</button>
           ))}
         </nav>
-        <div className="ml-auto flex gap-2">
+        <select aria-label="Section" value={tab} onChange={(e) => setTab(e.target.value as Tab)}
+          className="ml-auto rounded border border-white/40 bg-[#222831] px-2 py-2 text-sm text-white md:hidden">
+          {TABS.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+        </select>
+        <div className="ml-auto hidden gap-2 md:flex">
           <Button variant="outline" size="sm" className="border-white/40 bg-transparent text-xs uppercase tracking-widest text-white hover:bg-white hover:text-black"
             disabled={!ready} onClick={() => run(() => exportDepouillement(project))}>Exporter le dépouillement</Button>
           <Button variant="outline" size="sm" className="border-white/40 bg-transparent text-xs uppercase tracking-widest text-white hover:bg-white hover:text-black"
             disabled={!ready || !project.days.length} onClick={() => run(() => exportPlanTravail(project))}>Exporter le plan de travail</Button>
         </div>
+        <details className="relative w-full md:hidden">
+          <summary className="cursor-pointer rounded border border-white/40 px-3 py-2 text-sm">Exporter (Excel)</summary>
+          <div className="mt-2 flex flex-col gap-2">
+            <Button variant="outline" size="sm" className="justify-start border-white/40 bg-transparent text-white hover:bg-white hover:text-black"
+              disabled={!ready} onClick={() => run(() => exportDepouillement(project))}>Le dépouillement</Button>
+            <Button variant="outline" size="sm" className="justify-start border-white/40 bg-transparent text-white hover:bg-white hover:text-black"
+              disabled={!ready || !project.days.length} onClick={() => run(() => exportPlanTravail(project))}>Le plan de travail</Button>
+          </div>
+        </details>
       </header>
-      <main className="p-5">
+      <main className="p-3 sm:p-5">
         {error && <p className="mb-3 text-sm text-red-700">{error}</p>}
         {tab === 'import' && <ImportView project={project} update={update} onDone={() => setTab('sequencier')} />}
         {tab === 'production' && <ProductionView project={project} update={update} />}

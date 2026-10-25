@@ -33,7 +33,7 @@ export function SequencierView({ project, updateScene, onOpen }: {
       </div>
       <div className="overflow-x-auto rounded border border-neutral-300 bg-white">
         <table className="w-full min-w-[900px] text-left">
-          <thead className="bg-[#1F2433] text-[11px] uppercase tracking-wider text-white">
+          <thead className="bg-[#1F2433] text-xs uppercase tracking-wider text-white">
             <tr>{['N°', 'Décor', 'I/E', 'Effet', 'Rôles', 'Durée', 'Tournage (min)', 'Jour', ''].map((h) => <th key={h} className="px-2 py-2 font-semibold">{h}</th>)}</tr>
           </thead>
           <tbody>

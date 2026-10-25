@@ -33,7 +33,7 @@ export async function proposeShots(scene: Scene, roles: string[], all: Scene[] =
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
-  return (data.shots as Omit<Shot, 'id'>[]).map((h) => emptyShot(h));
+  return (data.shots as Omit<Shot, 'id'>[]).map((h) => emptyShot({ ...h, origin: 'ia' }));
 }
 
 /** Dépouillement d'un plan : l'IA ne remplit que les rubriques encore vides. */

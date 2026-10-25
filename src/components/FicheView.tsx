@@ -4,7 +4,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { analyseScene, applyAnalysis } from '../lib/ai';
 import { CATEGORIES, type Project, type Scene } from '../types';
 
-const L = ({ children }: { children: string }) => <span className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-neutral-500">{children}</span>;
+const L = ({ children }: { children: string }) => <span className="mb-1 block text-xs font-bold uppercase tracking-widest text-neutral-500">{children}</span>;
 const lines = (v: string) => v.split('\n').map((x) => x.trim()).filter(Boolean);
 
 export function FicheView({ project, sceneId, onSelect, updateScene }: {

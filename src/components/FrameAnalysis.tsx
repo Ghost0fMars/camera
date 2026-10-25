@@ -27,18 +27,18 @@ export function FrameAnalysis({ shot, edit }: { shot: Shot; edit: (patch: Partia
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-3">
         <b className="text-sm">Analyse du cadre</b>
-        <label className={`cursor-pointer rounded border border-neutral-300 bg-white px-3 py-1 text-sm hover:bg-neutral-100 ${busy ? 'pointer-events-none opacity-50' : ''}`}>
+        <label className={`cursor-pointer rounded border border-neutral-400 bg-white px-3 py-2 text-sm hover:bg-neutral-100 focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-[#222831] ${busy ? 'pointer-events-none opacity-50' : ''}`}>
           {busy ? 'Analyse…' : frame ? 'Changer l\'image' : 'Choisir une image (photo, storyboard, plan de film)'}
-          <input type="file" accept="image/jpeg,image/png" className="hidden" onChange={(e) => { void pick(e.target.files?.[0]); e.target.value = ''; }} />
+          <input type="file" accept="image/jpeg,image/png" className="sr-only" onChange={(e) => { void pick(e.target.files?.[0]); e.target.value = ''; }} />
         </label>
         {frame && <Button variant="outline" size="sm" onClick={() => edit({ frame: undefined })}>Retirer</Button>}
-        <span className="text-xs text-neutral-500">prototype · LocateAnything (NVIDIA), usage non commercial</span>
+        <span className="text-xs text-neutral-600">Prototype : modèle LocateAnything (NVIDIA), pour un usage non commercial</span>
       </div>
       {msg && <p className="text-sm text-red-700">{msg}</p>}
       {frame && (
         <div className="flex flex-wrap items-start gap-4">
           <div className="relative max-w-md">
-            <img src={frame.img} alt="Cadre analysé" className="block w-full rounded border border-neutral-300" />
+            <img src={frame.img} alt="Image analysée, avec les personnages et visages repérés en rectangles" className="block w-full rounded border border-neutral-300" />
             <svg viewBox="0 0 1000 1000" preserveAspectRatio="none" className="absolute inset-0 h-full w-full">
               {frame.detections.map((d, i) => d.type === 'box' && d.coords.length === 4 && (
                 <g key={i}>

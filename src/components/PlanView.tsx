@@ -33,7 +33,7 @@ export function PlanView({ project, update, updateScene }: {
       </div>
       {unassigned.length > 0 && (
         <div className="rounded border border-dashed border-neutral-400 bg-white p-3">
-          <h3 className="mb-2 text-[10px] font-bold uppercase tracking-widest text-neutral-500">Non planifiées ({unassigned.length})</h3>
+          <h3 className="mb-2 text-xs font-bold uppercase tracking-widest text-neutral-500">Non planifiées ({unassigned.length})</h3>
           <div className="flex flex-wrap gap-2">
             {unassigned.map((s) => (
               <span key={s.id} className="flex items-center gap-1 rounded bg-neutral-100 px-2 py-1 text-sm">

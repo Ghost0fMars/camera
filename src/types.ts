@@ -38,6 +38,7 @@ export type Shape = { id: string } & (
 );
 
 export const SIZES = ['PG', 'PE', 'PA', 'PM', 'PR', 'GP', 'TGP', 'Insert'] as const;
+export const SIZE_NAMES: Record<string, string> = { PG: 'Plan général', PE: "Plan d'ensemble", PA: 'Plan américain', PM: 'Plan moyen', PR: 'Plan rapproché', GP: 'Gros plan', TGP: 'Très gros plan', Insert: 'Insert' };
 export const MOVES = ['Fixe', 'Panoramique', 'Travelling', 'Épaule', 'Steadicam', 'Zoom', 'Grue / drone'] as const;
 
 /** Un plan du découpage technique. Son numéro est « séquence.rang » (ex. 2.3). */
@@ -51,6 +52,7 @@ export interface Shot {
   notes: string;
   categories?: Categories; // dépouillement du plan (mêmes rubriques que la séquence)
   frame?: { img: string; detections: Detection[] }; // image de référence analysée (LocateAnything)
+  origin?: 'ia';           // plan proposé par l'IA et pas encore gardé par l'utilisateur
 }
 
 export interface Scene {
