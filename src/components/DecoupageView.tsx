@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { proposeShots } from '../lib/ai';
+import { analyseShot, proposeShots } from '../lib/ai';
 import { exportDecoupage } from '../lib/exportXlsx';
-import { emptyShot, shotNumber, shotsFromCameras } from '../lib/shots';
-import { MOVES, SIZES, type Project, type Scene, type Shot } from '../types';
+import { emptyShot, shotCats, shotItems, shotNumber, shotsFromCameras } from '../lib/shots';
+import { CATEGORIES, MOVES, SIZES, type Project, type Scene, type Shot } from '../types';
+
+const lines = (v: string) => v.split('\n').map((x) => x.trim()).filter(Boolean);
 
 const cell = 'w-full rounded border border-transparent bg-transparent px-1.5 py-1 text-sm hover:border-neutral-300 focus:border-neutral-500 focus:bg-white focus:outline-none';
 
@@ -12,6 +14,7 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
 }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
+  const [open, setOpen] = useState<string | null>(null);
   const sorted = [...project.scenes].sort((a, b) => a.number - b.number);
   const scene = sorted.find((s) => s.id === sceneId) ?? sorted[0];
   if (!scene) return <p className="text-sm text-neutral-500">Importez d'abord un scénario.</p>;
@@ -27,6 +30,12 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
       set([...shots, ...added]);
       setMsg(`${added.length} plans proposés par l'IA, ajoutés à la suite de votre liste.`);
     } catch (e) { setMsg((e as Error).message); }
+    setBusy(false);
+  };
+  const analyse = async (h: Shot) => {
+    setBusy(true); setMsg('');
+    try { edit(h.id, { categories: await analyseShot(scene, h, project.roles.map((r) => r.name)) }); setMsg('Proposition de l\'IA ajoutée (vos saisies sont conservées).'); }
+    catch (e) { setMsg((e as Error).message); }
     setBusy(false);
   };
   const fromCams =shotsFromCameras(scene);
@@ -55,7 +64,8 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
             </thead>
             <tbody>
               {shots.map((h, i) => (
-                <tr key={h.id} className="border-t border-neutral-200 align-top">
+                <Fragment key={h.id}>
+                <tr className="border-t border-neutral-200 align-top">
                   <td className="whitespace-nowrap px-2 py-1.5 text-sm font-semibold">{shotNumber(scene, i)}</td>
                   <td><input className={cell} list="tailles" value={h.size} onChange={(e) => edit(h.id, { size: e.target.value })} /></td>
                   <td><input className={cell} list="mouvements" value={h.move} onChange={(e) => edit(h.id, { move: e.target.value })} /></td>
@@ -64,11 +74,33 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
                   <td className="min-w-64"><textarea className={`${cell} min-h-9`} value={h.description} onChange={(e) => edit(h.id, { description: e.target.value })} /></td>
                   <td className="min-w-40"><textarea className={`${cell} min-h-9`} value={h.notes} onChange={(e) => edit(h.id, { notes: e.target.value })} /></td>
                   <td className="whitespace-nowrap px-1 text-sm">
+                    <button title="Dépouillement du plan" onClick={() => setOpen(open === h.id ? null : h.id)}
+                      className={`mr-1 rounded px-1.5 text-xs ${open === h.id ? 'bg-[#FFD369] font-semibold' : 'bg-neutral-100 hover:bg-neutral-200'}`}>Dép.{shotItems(h) ? ` (${shotItems(h)})` : ''}</button>
                     <button title="Monter" disabled={!i} onClick={() => swap(i, i - 1)} className="px-1 disabled:opacity-30">↑</button>
                     <button title="Descendre" disabled={i === shots.length - 1} onClick={() => swap(i, i + 1)} className="px-1 disabled:opacity-30">↓</button>
                     <button title="Supprimer" onClick={() => set(shots.filter((x) => x.id !== h.id))} className="px-1 text-red-700">✕</button>
                   </td>
                 </tr>
+                {open === h.id && (
+                  <tr className="bg-neutral-50"><td colSpan={8} className="px-3 py-3">
+                    <div className="mb-2 flex items-center gap-3">
+                      <b className="text-sm">Dépouillement du plan {shotNumber(scene, i)}</b>
+                      <Button variant="outline" size="sm" disabled={busy} onClick={() => analyse(h)}>{busy ? 'Analyse…' : 'Dépouiller ce plan (IA)'}</Button>
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-3">
+                      {CATEGORIES.map((c) => (
+                        <label key={c.key} className="block">
+                          <span className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-neutral-500">{c.label}</span>
+                          <textarea className="min-h-14 w-full rounded border border-neutral-300 bg-white p-1.5 text-sm" placeholder="Un élément par ligne"
+                            value={shotCats(h)[c.key].join('\n')}
+                            onChange={(e) => edit(h.id, { categories: { ...shotCats(h), [c.key]: e.target.value.split('\n') } })}
+                            onBlur={(e) => edit(h.id, { categories: { ...shotCats(h), [c.key]: lines(e.target.value) } })} />
+                        </label>
+                      ))}
+                    </div>
+                  </td></tr>
+                )}
+                </Fragment>
               ))}
               {!shots.length && <tr><td colSpan={8} className="px-3 py-4 text-sm text-neutral-500">Aucun plan. Ajoutez-en un, ou créez-les depuis les caméras de la vue du dessus.</td></tr>}
             </tbody>

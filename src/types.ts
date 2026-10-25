@@ -48,6 +48,7 @@ export interface Shot {
   camera: string;          // « Cam 1 », lié au plan de scène
   description: string;
   notes: string;
+  categories?: Categories; // dépouillement du plan (mêmes rubriques que la séquence)
 }
 
 export interface Scene {

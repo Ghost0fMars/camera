@@ -2,12 +2,12 @@
 import assert from 'node:assert/strict';
 import { cleanAnalysis, extractJson } from '../api/analyse';
 import { angleOf, arrowHead, nextCamera, ownerOf, shift } from '../src/lib/plan';
-import { allShots, emptyShot, shotNumber, shotsFromCameras } from '../src/lib/shots';
+import { allShots, emptyShot, shotItems, shotNumber, shotsFromCameras } from '../src/lib/shots';
 import type { Shape } from '../src/types';
 import { cleanShots } from '../api/decoupage';
 import { dayStats, fmtDur, parseDur, recap } from '../src/lib/planning';
 import { parseScript, parseSlug } from '../src/lib/screenplay';
-import { EMPTY_PROJECT } from '../src/types';
+import { EMPTY_PROJECT, emptyCategories } from '../src/types';
 
 const script = `# La Clé
 
@@ -81,5 +81,8 @@ assert.equal(cs.length, 2);
 assert.deepEqual(cs[0], { size: 'GP', move: 'Fixe', lens: '', camera: '', description: 'Vincent regarde.', notes: '' });
 assert.equal(cs[1].camera, 'Cam 1');
 assert.deepEqual(cleanShots({}), []);
+
+assert.equal(shotItems(emptyShot()), 0);
+assert.equal(shotItems(emptyShot({ categories: { ...emptyCategories(), accessoires: ['Clé', 'Téléphone'], son: ['Pas'] } })), 3);
 
 console.log('OK');

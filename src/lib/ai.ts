@@ -1,5 +1,5 @@
 import type { Categories, Scene, Shot } from '../types';
-import { emptyShot } from './shots';
+import { emptyShot, shotCats } from './shots';
 
 export interface Analysis { summary: string; continuity: string; categories: Categories }
 
@@ -33,4 +33,14 @@ export async function proposeShots(scene: Scene, roles: string[]): Promise<Shot[
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
   return (data.shots as Omit<Shot, 'id'>[]).map((h) => emptyShot(h));
+}
+
+/** Dépouillement d'un plan : l'IA ne remplit que les rubriques encore vides. */
+export async function analyseShot(scene: Scene, shot: Shot, roles: string[]): Promise<Categories> {
+  const text = `PLAN À DÉPOUILLER : ${shot.size}, ${shot.move}${shot.lens ? `, ${shot.lens}` : ''} — ${shot.description}\n`
+    + `Ne liste QUE ce qui est visible ou audible dans ce plan.\n\nCONTEXTE (séquence entière) :\n${scene.text}`;
+  const a = await analyseScene({ ...scene, text }, roles);
+  const cats = shotCats(shot);
+  for (const k of Object.keys(cats) as (keyof Categories)[]) if (!cats[k].length) cats[k] = a.categories[k] ?? [];
+  return cats;
 }

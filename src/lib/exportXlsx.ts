@@ -1,6 +1,6 @@
 import type { Workbook, Worksheet } from 'exceljs';
 import { CATEGORIES, type Project, type Scene } from '../types';
-import { allShots } from './shots';
+import { allShots, shotCats } from './shots';
 import { dayDate, dayStats, fmtDur, fmtHours, recap, roleLabel } from './planning';
 
 const HEAD = 'FF1F2433';
@@ -152,6 +152,9 @@ export async function buildDecoupage(p: Project) {
   addTable(wb, 'DÉCOUPAGE TECHNIQUE',
     [['Plan', 7], ['Séq', 6], ['Décor', 30], ['I/E', 7], ['Effet', 12], ['Taille', 9], ['Mouvement', 14], ['Optique', 10], ['Caméra', 9], ['Description', 60], ['Notes', 40]].map(([header, width]) => ({ header: String(header), width: Number(width) })),
     allShots(p.scenes).map(({ s, h, n }) => [n, s.number, s.decor, s.ie, s.effect, h.size, h.move, h.lens, h.camera, h.description, h.notes]));
+  addTable(wb, 'DÉPOUILLEMENT PAR PLAN',
+    [{ header: 'Plan', width: 7 }, { header: 'Description', width: 40 }, ...CATEGORIES.map((c) => ({ header: c.label, width: 24 }))],
+    allShots(p.scenes).map(({ h, n }) => [n, h.description, ...CATEGORIES.map((c) => shotCats(h)[c.key].join('\n'))]));
   return { wb, filename: `decoupage-${slug(p.title)}.xlsx` };
 }
 export const exportDecoupage = async (p: Project) => { const r = await buildDecoupage(p); await download(r.wb, r.filename); };

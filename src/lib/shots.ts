@@ -1,4 +1,4 @@
-import type { Scene, Shot } from '../types';
+import { emptyCategories, type Categories, type Scene, type Shot } from '../types';
 import { newId } from './planning';
 
 export const emptyShot = (patch: Partial<Shot> = {}): Shot =>
@@ -16,3 +16,9 @@ export function shotsFromCameras(s: Scene): Shot[] {
 /** Tous les plans du film à plat, dans l'ordre des séquences (pour l'export). */
 export const allShots = (scenes: Scene[]) =>
   [...scenes].sort((a, b) => a.number - b.number).flatMap((s) => (s.shots ?? []).map((h, i) => ({ s, h, n: shotNumber(s, i) })));
+
+/** Rubriques d'un plan (anciens plans sans dépouillement : toutes vides). */
+export const shotCats = (h: Shot): Categories => ({ ...emptyCategories(), ...h.categories });
+
+/** Nombre d'éléments de dépouillement saisis pour un plan. */
+export const shotItems = (h: Shot) => Object.values(shotCats(h)).reduce((n, l) => n + l.length, 0);
