@@ -1,5 +1,6 @@
 import { Fragment, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { FrameAnalysis } from './FrameAnalysis';
 import { adviseScene, analyseShot, proposeShots } from '../lib/ai';
 import { exportDecoupage } from '../lib/exportXlsx';
 import { emptyShot, shotCats, shotItems, shotNumber, shotsFromCameras } from '../lib/shots';
@@ -15,6 +16,7 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
   const [open, setOpen] = useState<string | null>(null);
+  const [frameOpen, setFrameOpen] = useState<string | null>(null);
   const sorted = [...project.scenes].sort((a, b) => a.number - b.number);
   const scene = sorted.find((s) => s.id === sceneId) ?? sorted[0];
   if (!scene) return <p className="text-sm text-neutral-500">Importez d'abord un scénario.</p>;
@@ -92,6 +94,8 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
                   <td className="min-w-64"><textarea className={`${cell} min-h-9`} value={h.description} onChange={(e) => edit(h.id, { description: e.target.value })} /></td>
                   <td className="min-w-40"><textarea className={`${cell} min-h-9`} value={h.notes} onChange={(e) => edit(h.id, { notes: e.target.value })} /></td>
                   <td className="whitespace-nowrap px-1 text-sm">
+                    <button title="Analyse du cadre" onClick={() => setFrameOpen(frameOpen === h.id ? null : h.id)}
+                      className={`mr-1 rounded px-1.5 text-xs ${frameOpen === h.id ? 'bg-[#FFD369] font-semibold' : 'bg-neutral-100 hover:bg-neutral-200'}`}>Cadre{h.frame ? ' ✓' : ''}</button>
                     <button title="Dépouillement du plan" onClick={() => setOpen(open === h.id ? null : h.id)}
                       className={`mr-1 rounded px-1.5 text-xs ${open === h.id ? 'bg-[#FFD369] font-semibold' : 'bg-neutral-100 hover:bg-neutral-200'}`}>Dép.{shotItems(h) ? ` (${shotItems(h)})` : ''}</button>
                     <button title="Monter" disabled={!i} onClick={() => swap(i, i - 1)} className="px-1 disabled:opacity-30">↑</button>
@@ -118,6 +122,7 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
                     </div>
                   </td></tr>
                 )}
+                {frameOpen === h.id && <tr className="bg-neutral-50"><td colSpan={8} className="px-3 py-3"><FrameAnalysis shot={h} edit={(patch) => edit(h.id, patch)} /></td></tr>}
                 </Fragment>
               ))}
               {!shots.length && <tr><td colSpan={8} className="px-3 py-4 text-sm text-neutral-500">Aucun plan. Ajoutez-en un, ou créez-les depuis les caméras de la vue du dessus.</td></tr>}

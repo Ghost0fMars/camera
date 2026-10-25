@@ -1,3 +1,4 @@
+import type { Detection } from './lib/frame';
 export type IE = 'INT' | 'EXT' | 'INT/EXT';
 
 /** Rubriques de la fiche de séquence (dans l'ordre de la feuille « SEQ n » du dépouillement). */
@@ -49,6 +50,7 @@ export interface Shot {
   description: string;
   notes: string;
   categories?: Categories; // dépouillement du plan (mêmes rubriques que la séquence)
+  frame?: { img: string; detections: Detection[] }; // image de référence analysée (LocateAnything)
 }
 
 export interface Scene {

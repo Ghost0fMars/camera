@@ -1,4 +1,5 @@
 import type { Categories, Scene, Shot } from '../types';
+import type { Detection } from './frame';
 import { emptyShot, shotCats } from './shots';
 
 export interface Analysis { summary: string; continuity: string; categories: Categories }
@@ -60,4 +61,12 @@ export async function adviseScene(scene: Scene, roles: string[]): Promise<string
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
   return data.advice as string;
+}
+
+/** Repère personnages et visages dans une image (LocateAnything, via /api/locate). */
+export async function locateFrame(dataUrl: string): Promise<Detection[]> {
+  const res = await fetch('/api/locate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ image: dataUrl }) });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
+  return data.detections as Detection[];
 }
