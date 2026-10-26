@@ -1,0 +1,234 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-26T00:03:42.470Z",
+  "title": "Design System: Caméra",
+  "extensions": {
+    "colorMeta": {
+      "jaune-atelier": {
+        "role": "primary",
+        "displayName": "Jaune de l'atelier",
+        "canonical": "#FFD369",
+        "tonalRamp": [
+          "#4d3600",
+          "#805a00",
+          "#b37e00",
+          "#e6a200",
+          "#ffc333",
+          "#ffda80",
+          "#ffedc2",
+          "#fff8e5"
+        ]
+      },
+      "ardoise-alacle": {
+        "role": "neutral",
+        "displayName": "Ardoise àlaclé",
+        "canonical": "#222831",
+        "tonalRamp": [
+          "#1f252d",
+          "#343d4b",
+          "#495669",
+          "#5e6f87",
+          "#8795ab",
+          "#b4bdcb",
+          "#dbdfe6",
+          "#f0f2f5"
+        ]
+      },
+      "ardoise-douce": {
+        "role": "neutral",
+        "displayName": "Ardoise douce",
+        "canonical": "#393E46",
+        "tonalRamp": [
+          "#22252a",
+          "#393e46",
+          "#505762",
+          "#67707e",
+          "#8f97a3",
+          "#b9bec6",
+          "#dde0e4",
+          "#f1f2f4"
+        ]
+      },
+      "fond-atelier": {
+        "role": "neutral",
+        "displayName": "Fond d'atelier",
+        "canonical": "#EEEEEE",
+        "tonalRamp": [
+          "#262626",
+          "#404040",
+          "#595959",
+          "#737373",
+          "#999999",
+          "#bfbfbf",
+          "#e0e0e0",
+          "#f2f2f2"
+        ]
+      },
+      "papier": {
+        "role": "neutral",
+        "displayName": "Papier",
+        "canonical": "#FFFFFF",
+        "tonalRamp": [
+          "#262626",
+          "#404040",
+          "#595959",
+          "#737373",
+          "#999999",
+          "#bfbfbf",
+          "#e0e0e0",
+          "#f2f2f2"
+        ]
+      },
+      "alerte": {
+        "role": "tertiary",
+        "displayName": "Alerte",
+        "canonical": "#991B1B",
+        "tonalRamp": [
+          "#410b0b",
+          "#6c1313",
+          "#981b1b",
+          "#c32222",
+          "#e05252",
+          "#ec9393",
+          "#f6cbcb",
+          "#fbe9e9"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "title": {
+        "displayName": "Titre",
+        "purpose": "Titre de séquence et titres de vues, en serif italique."
+      },
+      "body": {
+        "displayName": "Corps",
+        "purpose": "Champs, boutons, listes et messages de l'interface."
+      },
+      "label": {
+        "displayName": "Libellé",
+        "purpose": "Libellé de champ, toujours visible, jamais sous 12 px."
+      },
+      "nav": {
+        "displayName": "Navigation",
+        "purpose": "Onglets de l'en-tête en majuscules espacées."
+      },
+      "script": {
+        "displayName": "Scénario",
+        "purpose": "Texte d'une séquence, en monospace."
+      }
+    },
+    "shadows": [],
+    "motion": [],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Bouton principal",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Action principale d'une zone (un seul par zone).",
+      "html": "<button class=\"ds-btn-primary\">+ Ajouter un plan</button>",
+      "css": ".ds-btn-primary{height:28px;padding:0 10px;border:1px solid transparent;border-radius:4px;background:#222831;color:#fff;font:500 13px Barlow,system-ui,sans-serif;cursor:pointer;transition:background .15s}.ds-btn-primary:hover{background:#393E46}.ds-btn-primary:focus-visible{outline:2px solid #222831;outline-offset:2px}"
+    },
+    {
+      "name": "Bouton secondaire",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Action secondaire, dont les boutons d'assistance IA.",
+      "html": "<button class=\"ds-btn-outline\">Proposer un découpage (IA)</button>",
+      "css": ".ds-btn-outline{height:28px;padding:0 10px;border:1px solid #393E46;border-radius:4px;background:#fff;color:#222831;font:500 13px Barlow,system-ui,sans-serif;cursor:pointer;transition:background .15s}.ds-btn-outline:hover{background:#EEEEEE}.ds-btn-outline:focus-visible{outline:2px solid #222831;outline-offset:2px}.ds-btn-outline:disabled{opacity:.5;cursor:default}"
+    },
+    {
+      "name": "Champ étiqueté",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "Champ de saisie avec libellé de 12 px au-dessus.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Optique</span><input class=\"ds-field-input\" placeholder=\"35 mm\"></label>",
+      "css": ".ds-field{display:block;width:180px}.ds-field-label{display:block;margin-bottom:4px;font:500 12px Barlow,system-ui,sans-serif;color:#404040}.ds-field-input{width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid #A3A3A3;border-radius:4px;background:#fff;color:#222831;font:400 14px Barlow,system-ui,sans-serif}.ds-field-input:focus-visible{outline:2px solid #222831;outline-offset:1px}"
+    },
+    {
+      "name": "Onglet actif",
+      "kind": "nav",
+      "refersTo": "nav-tab-active",
+      "description": "Onglet de l'en-tête ; le jaune marque la sélection.",
+      "html": "<nav class=\"ds-nav\"><button class=\"ds-tab ds-tab-on\" aria-current=\"page\">Découpage technique</button><button class=\"ds-tab\">Vue du dessus</button></nav>",
+      "css": ".ds-nav{display:flex;gap:4px;padding:10px;background:#222831}.ds-tab{padding:6px 12px;border:0;border-radius:4px;background:transparent;color:#fff;font:400 12px Barlow,system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}.ds-tab:hover{background:rgba(255,255,255,.1)}.ds-tab-on{background:#FFD369;color:#222831;font-weight:700}.ds-tab:focus-visible{outline:2px solid #FFD369;outline-offset:2px}"
+    },
+    {
+      "name": "Carte de plan",
+      "kind": "card",
+      "refersTo": "plan-card",
+      "description": "Un plan du découpage : en-tête, statut, champs étiquetés.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-head\"><b>Plan 1.2</b><span class=\"ds-chip\">Proposé par l'IA</span><button class=\"ds-link\">Garder</button></div><div class=\"ds-card-grid\"><label><span class=\"ds-lab\">Taille</span><input class=\"ds-in\" value=\"PA\"></label><label><span class=\"ds-lab\">Mouvement</span><input class=\"ds-in\" value=\"Fixe\"></label></div></div>",
+      "css": ".ds-card{width:360px;padding:12px;border:1px solid #D4D4D4;border-radius:4px;background:#fff;font:400 14px Barlow,system-ui,sans-serif;color:#222831}.ds-card-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}.ds-chip{padding:0 6px;border:1px solid #404040;border-radius:4px;font-size:12px}.ds-link{border:0;background:none;padding:0;font-size:12px;font-weight:600;text-decoration:underline;cursor:pointer;color:#222831}.ds-card-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.ds-lab{display:block;margin-bottom:4px;font-size:12px;font-weight:500;color:#404040}.ds-in{width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid #A3A3A3;border-radius:4px;font:inherit}"
+    },
+    {
+      "name": "Bandeau d'annulation",
+      "kind": "custom",
+      "refersTo": "toast-undo",
+      "description": "Confirme une action destructive et propose de la défaire pendant 8 secondes.",
+      "html": "<p class=\"ds-toast\"><span>Plan 1.2 supprimé.</span><button class=\"ds-toast-btn\">Annuler</button></p>",
+      "css": ".ds-toast{display:flex;align-items:center;gap:12px;margin:0;padding:8px 12px;border:1px solid #404040;border-radius:4px;background:#222831;color:#fff;font:400 14px Barlow,system-ui,sans-serif}.ds-toast-btn{border:0;background:none;padding:0;color:#fff;font:600 14px Barlow,system-ui,sans-serif;text-decoration:underline;text-underline-offset:2px;cursor:pointer}.ds-toast-btn:focus-visible{outline:2px solid #FFD369;outline-offset:2px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "L'atelier àlaclé",
+    "overview": "Caméra est un établi, pas une vitrine : un poste de travail d'atelier où l'on prépare un film. Le système prolonge la charte du site de l'association : une ardoise bleutée pour la structure et le texte, un jaune réservé au repère, des titres en serif italique et un corps de texte en Barlow. Rien n'y cherche l'attention : la lisibilité d'un plan, d'une rubrique ou d'une proposition de l'IA passe avant l'effet.",
+    "keyCharacteristics": [
+      "Fond d'atelier gris clair, surfaces blanches, filets fins ; aucune ombre au repos.",
+      "Jaune de l'atelier réservé à la sélection et au titre de marque.",
+      "Titres en serif italique, interface en Barlow, texte de scénario en mono.",
+      "Boutons et champs aux angles de 4 px, focus ardoise de 2 px très visible.",
+      "Les propositions de l'IA se voient : marquées, jamais confondues avec une décision."
+    ],
+    "rules": [
+      {
+        "name": "The Selection-Only Yellow Rule",
+        "body": "Le jaune ne dit qu'une chose : « c'est la sélection ». Un volet ouvert, un bouton d'action ou une décoration n'en reçoivent jamais.",
+        "section": "colors"
+      },
+      {
+        "name": "The Slate Voice Rule",
+        "body": "Le texte et la structure sont en ardoise, jamais en noir pur ; les gris secondaires ne servent que sur blanc ou fond d'atelier.",
+        "section": "colors"
+      },
+      {
+        "name": "The Twelve Pixel Floor Rule",
+        "body": "Aucun texte fonctionnel sous 12 px ; les libellés restent visibles en permanence.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Until Touched Rule",
+        "body": "Une surface est plate au repos. Si une ombre est introduite, elle est diffuse et ne répond qu'à une interaction.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do réserver le jaune de l'atelier (#FFD369) à la sélection (séquence, onglet) et au titre de marque.",
+      "Do garder un libellé de 12 px minimum visible au-dessus de chaque champ.",
+      "Do marquer toute proposition de l'IA (« Proposé par l'IA ») avec « Garder » et « Tout retirer », et offrir l'annulation de toute suppression.",
+      "Do donner à chaque contrôle un contour de focus ardoise de 2 px et un aria-label quand il n'a pas de texte.",
+      "Do rester plat au repos : surfaces blanches sur fond d'atelier, filets fins de 1 px."
+    ],
+    "donts": [
+      "Don't ajouter de dégradés, d'effets de verre, d'ombres marquées ou d'animations décoratives.",
+      "Don't habiller l'IA en gadget : ni étoile, ni éclat, ni ton magique autour des boutons d'assistance.",
+      "Don't laisser un composant par défaut sans l'adapter : l'interface doit rester celle de l'atelier àlaclé.",
+      "Don't utiliser le jaune pour un volet ouvert, un bouton d'action ou une alerte.",
+      "Don't descendre sous 12 px de texte fonctionnel ni supprimer un contour de focus."
+    ]
+  }
+}
