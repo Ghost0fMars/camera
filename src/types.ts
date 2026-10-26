@@ -50,6 +50,7 @@ export interface Shot {
   camera: string;          // « Cam 1 », lié au plan de scène
   duration?: string;       // durée prévue, saisie libre (« 8 s »)
   prompt?: string;         // prompt image / vidéo généré pour ce plan
+  image?: { url: string; model: string; at: number }; // image générée via fal.ai (adresse temporaire : à télécharger pour la garder)
   description: string;
   notes: string;
   categories?: Categories; // dépouillement du plan (mêmes rubriques que la séquence)

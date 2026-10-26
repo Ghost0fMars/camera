@@ -7,6 +7,7 @@ import planHandler from './api/plan.js';
 import promptHandler from './api/prompt.js';
 import miseEnSceneHandler from './api/mise-en-scene.js';
 import locateHandler from './api/locate.js';
+import imageHandler from './api/image.js';
 
 dotenv.config({ path: '.env.local' });
 dotenv.config();
@@ -20,6 +21,7 @@ app.post('/api/calendrier', calendrierHandler);
 app.post('/api/prompt', promptHandler);
 app.post('/api/mise-en-scene', miseEnSceneHandler);
 app.post('/api/locate', locateHandler);
+app.post('/api/image', imageHandler);
 
 const PORT = 3102;
 app.listen(PORT, () => console.log(`API locale sur http://localhost:${PORT}`));

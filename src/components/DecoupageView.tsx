@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { FrameAnalysis } from './FrameAnalysis';
 import { ShotGlyph } from './ShotGlyph';
 import { adviseScene, analyseShot, proposeShots, shotPrompt } from '../lib/ai';
-import { emptyShot, shotCats, shotItems, shotNumber, shotsFromCameras } from '../lib/shots';
+import { FAL_MODELS, addSpent, falModel, fmtUsd, generateShotImage, getFalKey, getSpent, imagesCost, resetSpent, setFalKey } from '../lib/fal';
+import { allShots, emptyShot, shotCats, shotItems, shotNumber, shotsFromCameras } from '../lib/shots';
 import { CATEGORIES, MOVES, SIZES, SIZE_NAMES, type CategoryKey, type Project, type Scene, type Shot } from '../types';
 
 const lines = (v: string) => v.split('\n').map((x) => x.trim()).filter(Boolean);
@@ -28,6 +29,9 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
   const [open, setOpen] = useState<string | null>(null);
   const [promptOpen, setPromptOpen] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [falKey, setKey] = useState(getFalKey);
+  const [imgModel, setImgModel] = useState<string>('kontext');
+  const [spent, setSpent] = useState(getSpent);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const sorted = [...project.scenes].sort((a, b) => a.number - b.number);
   const scene = sorted.find((s) => s.id === sceneId) ?? sorted[0];
@@ -43,7 +47,7 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
   const startTimer = () => { clearTimeout(timer.current); timer.current = setTimeout(() => setUndo(null), 12000); };
   const offerUndo = (u: Undo) => { setUndo(u); startTimer(); };
   const closeMenu = (e: { currentTarget: HTMLElement }) => { (e.currentTarget.closest('details') as HTMLDetailsElement).open = false; };
-  const busyText = busy === 'advise' ? 'Conseils de mise en scène en cours…' : busy === 'propose' ? 'Proposition de découpage en cours…' : busy?.startsWith('dep:') ? 'Dépouillement du plan en cours…' : busy?.startsWith('prompt:') ? 'Rédaction du prompt en cours…' : '';
+  const busyText = busy === 'advise' ? 'Conseils de mise en scène en cours…' : busy === 'propose' ? 'Proposition de découpage en cours…' : busy?.startsWith('dep:') ? 'Dépouillement du plan en cours…' : busy?.startsWith('prompt:') ? 'Rédaction du prompt en cours…' : busy?.startsWith('img:') ? 'Génération de l\'image en cours (quelques secondes)…' : '';
   const roles = project.roles.map((r) => r.name);
 
   const fromCams = shotsFromCameras(scene);
@@ -84,6 +88,14 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
     edit(h.id, { prompt: await shotPrompt(scene, h, roles) });
     if (before) offerUndo({ text: 'Prompt remplacé.', restore: () => edit(h.id, { prompt: before }) });
   });
+  const changeKey = (v: string) => { setKey(v); setFalKey(v.trim()); };
+  const makeImage = (h: Shot) => run(`img:${h.id}`, async () => {
+    const before = h.image;
+    const url = await generateShotImage(h.prompt ?? '', imgModel, falKey.trim());
+    edit(h.id, { image: { url, model: imgModel, at: Date.now() } });
+    setSpent(addSpent(falModel(imgModel).usdPerImage));
+    if (before) offerUndo({ text: 'Image remplacée.', restore: () => edit(h.id, { image: before }) });
+  });
   const copy = async (h: Shot) => {
     try { await navigator.clipboard.writeText(h.prompt ?? ''); setCopied(h.id); setTimeout(() => setCopied(null), 2000); }
     catch { setNote({ text: 'Copie impossible : sélectionnez le texte et copiez-le à la main.', error: true }); }
@@ -121,6 +133,27 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
               <textarea aria-label="Conseils de mise en scène" className={`${field} min-h-40`} placeholder="Les conseils de l'IA apparaissent ici ; vous pouvez les modifier."
                 value={scene.advice} onChange={(e) => updateScene(scene.id, { advice: e.target.value })} />
             )}
+          </div>
+        </details>
+
+        <details className="rounded border border-neutral-300 bg-white p-3 text-sm">
+          <summary className="cursor-pointer font-semibold">Images des plans <span className="font-normal text-neutral-600">· fal.ai, avec votre clé{falKey.trim() ? ' · clé saisie' : ''}</span></summary>
+          <div className="mt-2 space-y-3">
+            <label className="block"><span className={label}>Votre clé fal.ai</span>
+              <input type="password" autoComplete="off" spellCheck={false} className={field} placeholder="clé fal.ai" value={falKey} onChange={(e) => changeKey(e.target.value)} /></label>
+            <p className="text-xs text-neutral-600">La clé reste dans votre navigateur. Elle est envoyée au serveur de l'application à chaque génération, uniquement pour relayer l'appel à fal.ai : elle n'y est ni enregistrée ni journalisée. Chaque image est facturée par fal.ai sur votre compte.</p>
+            <label className="block sm:max-w-xs"><span className={label}>Modèle</span>
+              <select className={field} value={imgModel} onChange={(e) => setImgModel(e.target.value)}>
+                {FAL_MODELS.map((m) => <option key={m.id} value={m.id}>{m.label} · ≈ {fmtUsd(m.usdPerImage)} l'image</option>)}
+              </select></label>
+            <p>
+              Tout le film ({plural(allShots(project.scenes).length, 'plan')}) : <b>≈ {fmtUsd(imagesCost(allShots(project.scenes).length, imgModel))}</b> avec une image par plan, ≈ <b>{fmtUsd(imagesCost(allShots(project.scenes).length * 3, imgModel))}</b> avec trois essais par plan.
+            </p>
+            <p className="flex flex-wrap items-center gap-3 text-neutral-700">
+              <span>Dépensé depuis cette application (estimation) : <b>{fmtUsd(spent)}</b></span>
+              {spent > 0 && <button onClick={() => { resetSpent(); setSpent(0); }} className="px-1 py-1.5 font-semibold underline underline-offset-2 pointer-coarse:min-h-11">Remettre à zéro</button>}
+            </p>
+            <p className="text-xs text-neutral-600">Tarifs indicatifs relevés sur fal.ai ; le montant réel est celui de votre compte fal.ai.</p>
           </div>
         </details>
 
@@ -228,7 +261,7 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
                       <button aria-expanded={promptOpen === h.id} aria-controls={`prompt-${h.id}`} onClick={() => setPromptOpen(promptOpen === h.id ? null : h.id)}
                         className="inline-flex min-h-9 items-center gap-1 rounded border border-neutral-400 px-2.5 text-sm hover:bg-neutral-100 pointer-coarse:min-h-11">
                         {promptOpen === h.id ? <ChevronDown className="size-4" aria-hidden /> : <ChevronRight className="size-4" aria-hidden />}
-                        Prompt image / vidéo{h.prompt ? ' · rédigé' : ''}
+                        Prompt image / vidéo{h.prompt ? ' · rédigé' : ''}{h.image ? ' · image' : ''}
                       </button>
                     </div>
 
@@ -242,6 +275,26 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
                         {h.prompt !== undefined && (
                           <label className="block"><span className={label}>Prompt</span>
                             <textarea className={`${field} field-sizing-content min-h-24 resize-none`} value={h.prompt} onChange={(e) => edit(h.id, { prompt: e.target.value })} /></label>
+                        )}
+                        {h.prompt?.trim() && (
+                          <div className="space-y-2 border-t border-neutral-200 pt-3">
+                            <div className="flex flex-wrap items-center gap-3">
+                              <Button variant="outline" size="sm" disabled={anyBusy || !falKey.trim()} onClick={() => makeImage(h)}>
+                                {h.image ? 'Régénérer l\'image' : 'Générer l\'image'} · ≈ {fmtUsd(falModel(imgModel).usdPerImage)}
+                              </Button>
+                              <span className="text-xs text-neutral-600">{falKey.trim() ? falModel(imgModel).label : 'Saisissez votre clé fal.ai dans « Images des plans », plus haut.'}</span>
+                            </div>
+                            {h.image && (
+                              <figure className="space-y-1">
+                                <img src={h.image.url} alt={`Image générée pour le plan ${n}`} className="aspect-video w-full max-w-xl rounded border border-neutral-300 bg-neutral-100 object-cover" />
+                                <figcaption className="flex flex-wrap items-center gap-3 text-xs text-neutral-600">
+                                  <a href={h.image.url} target="_blank" rel="noopener noreferrer" className="font-semibold underline underline-offset-2">Ouvrir pour l'enregistrer</a>
+                                  <button onClick={() => edit(h.id, { image: undefined })} className="px-1 py-1.5 font-semibold underline underline-offset-2 pointer-coarse:min-h-11">Retirer</button>
+                                  <span>L'adresse de l'image est temporaire : enregistrez-la pour la garder.</span>
+                                </figcaption>
+                              </figure>
+                            )}
+                          </div>
                         )}
                       </div>
                     )}
