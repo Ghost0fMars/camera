@@ -32,6 +32,8 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
   const [falKey, setKey] = useState(getFalKey);
   const [imgModel, setImgModel] = useState<string>('kontext');
   const [spent, setSpent] = useState(getSpent);
+  const [progress, setProgress] = useState('');
+  const stop = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const sorted = [...project.scenes].sort((a, b) => a.number - b.number);
   const scene = sorted.find((s) => s.id === sceneId) ?? sorted[0];
@@ -47,7 +49,7 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
   const startTimer = () => { clearTimeout(timer.current); timer.current = setTimeout(() => setUndo(null), 12000); };
   const offerUndo = (u: Undo) => { setUndo(u); startTimer(); };
   const closeMenu = (e: { currentTarget: HTMLElement }) => { (e.currentTarget.closest('details') as HTMLDetailsElement).open = false; };
-  const busyText = busy === 'advise' ? 'Conseils de mise en scène en cours…' : busy === 'propose' ? 'Proposition de découpage en cours…' : busy?.startsWith('dep:') ? 'Dépouillement du plan en cours…' : busy?.startsWith('prompt:') ? 'Rédaction du prompt en cours…' : busy?.startsWith('img:') ? 'Génération de l\'image en cours (quelques secondes)…' : '';
+  const busyText = busy === 'advise' ? 'Conseils de mise en scène en cours…' : busy === 'propose' ? 'Proposition de découpage en cours…' : busy?.startsWith('dep:') ? 'Dépouillement du plan en cours…' : busy?.startsWith('prompt:') ? 'Rédaction du prompt en cours…' : busy?.startsWith('img:') ? 'Génération de l\'image en cours (quelques secondes)…' : busy === 'batch' ? `Génération en cours : ${progress}` : '';
   const roles = project.roles.map((r) => r.name);
 
   const fromCams = shotsFromCameras(scene);
@@ -89,13 +91,49 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
     if (before) offerUndo({ text: 'Prompt remplacé.', restore: () => edit(h.id, { prompt: before }) });
   });
   const changeKey = (v: string) => { setKey(v); setFalKey(v.trim()); };
+  /** Image d'un plan ; le prompt est rédigé d'abord (gratuit, via Albert) s'il n'existe pas encore. */
   const makeImage = (h: Shot) => run(`img:${h.id}`, async () => {
     const before = h.image;
-    const url = await generateShotImage(h.prompt ?? '', imgModel, falKey.trim());
+    const prompt = h.prompt?.trim() ? h.prompt : await shotPrompt(scene, h, roles);
+    if (!h.prompt?.trim()) edit(h.id, { prompt });
+    const url = await generateShotImage(prompt, imgModel, falKey.trim());
     edit(h.id, { image: { url, model: imgModel, at: Date.now() } });
     setSpent(addSpent(falModel(imgModel).usdPerImage));
     if (before) offerUndo({ text: 'Image remplacée.', restore: () => edit(h.id, { image: before }) });
   });
+
+  /** Génère, l'une après l'autre, l'image de chaque plan décrit et sans image des séquences données. Le coût est confirmé avant de partir ; un échec arrête le lot sans perdre les images déjà faites. */
+  const generateBatch = (targets: Scene[], what: string) => run('batch', async () => {
+    const jobs = targets.flatMap((s) => (s.shots ?? []).filter((h) => h.description.trim() && !h.image).map((h) => ({ s, h })));
+    if (!jobs.length) return 'Rien à générer : tous les plans décrits ont déjà une image (les plans sans description sont ignorés).';
+    const cost = imagesCost(jobs.length, imgModel);
+    if (!window.confirm(`Générer ${plural(jobs.length, 'image')} pour ${what} avec « ${falModel(imgModel).label} » ?\nCoût estimé : ${fmtUsd(cost)}, facturé sur votre compte fal.ai.`)) return;
+    stop.current = false;
+    const shotsOf = new Map(targets.map((s) => [s.id, [...(s.shots ?? [])]]));
+    const patch = (sid: string, id: string, p: Partial<Shot>) => {
+      const next = (shotsOf.get(sid) ?? []).map((x) => (x.id === id ? { ...x, ...p } : x));
+      shotsOf.set(sid, next);
+      updateScene(sid, { shots: next });
+    };
+    let done = 0;
+    try {
+      for (const { s, h } of jobs) {
+        if (stop.current) break;
+        setProgress(`image ${done + 1} sur ${jobs.length}…`);
+        const prompt = h.prompt?.trim() ? h.prompt : await shotPrompt(s, h, roles);
+        if (!h.prompt?.trim()) patch(s.id, h.id, { prompt });
+        const url = await generateShotImage(prompt, imgModel, falKey.trim());
+        patch(s.id, h.id, { image: { url, model: imgModel, at: Date.now() } });
+        setSpent(addSpent(falModel(imgModel).usdPerImage));
+        done += 1;
+      }
+    } catch (e) {
+      setNote({ text: `${(e as Error).message} Lot interrompu : ${plural(done, 'image')} générée${done > 1 ? 's' : ''} sur ${jobs.length}. Relancez pour continuer avec les plans restants.`, error: true });
+      return;
+    }
+    return stop.current ? `Lot arrêté : ${plural(done, 'image')} générée${done > 1 ? 's' : ''} sur ${jobs.length}.` : `${plural(done, 'image')} générée${done > 1 ? 's' : ''}.`;
+  });
+  const batchReady = !!falKey.trim();
   const copy = async (h: Shot) => {
     try { await navigator.clipboard.writeText(h.prompt ?? ''); setCopied(h.id); setTimeout(() => setCopied(null), 2000); }
     catch { setNote({ text: 'Copie impossible : sélectionnez le texte et copiez-le à la main.', error: true }); }
@@ -153,6 +191,10 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
               <span>Dépensé depuis cette application (estimation) : <b>{fmtUsd(spent)}</b></span>
               {spent > 0 && <button onClick={() => { resetSpent(); setSpent(0); }} className="px-1 py-1.5 font-semibold underline underline-offset-2 pointer-coarse:min-h-11">Remettre à zéro</button>}
             </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button variant="outline" size="sm" disabled={anyBusy || !batchReady} onClick={() => void generateBatch(sorted, 'tout le film')}>Générer les images de tout le film</Button>
+            </div>
+            <p className="text-xs text-neutral-600">Le lot génère une image par plan décrit et sans image, en rédigeant d'abord les prompts manquants. Le coût est confirmé avant le départ.</p>
             <p className="text-xs text-neutral-600">Tarifs indicatifs relevés sur fal.ai ; le montant réel est celui de votre compte fal.ai.</p>
           </div>
         </details>
@@ -161,6 +203,11 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
           <div className="flex flex-wrap items-center gap-2">
             <h3 id="plans" className="mr-auto text-base font-semibold">Plans de la séquence · {shots.length}</h3>
             <Button size="sm" className={primary} onClick={() => set([...shots, emptyShot()])}>+ Ajouter un plan</Button>
+            <Button variant="outline" size="sm" disabled={anyBusy || !batchReady || !shots.some((h) => h.description.trim() && !h.image)}
+              title={batchReady ? undefined : 'Saisissez d\'abord votre clé fal.ai dans « Images des plans »'}
+              onClick={() => void generateBatch([scene], `la séquence ${scene.number}`)}>
+              Générer les images de la séquence
+            </Button>
             <details className="relative">
               <summary className="inline-flex h-7 cursor-pointer list-none items-center gap-1 rounded-md border border-neutral-400 bg-white px-2.5 text-sm font-medium hover:bg-neutral-100 pointer-coarse:h-11">Autres façons de créer <ChevronDown className="size-4" aria-hidden /></summary>
               <div className="absolute right-0 top-full z-10 mt-1 flex w-72 max-w-[85vw] flex-col gap-2 rounded border border-neutral-300 bg-white p-3 shadow-md">
@@ -173,7 +220,12 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
           </div>
 
           <div role="status" aria-live="polite" className="space-y-2 empty:hidden">
-            {busyText && <p className="rounded border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-800">{busyText}</p>}
+            {busyText && (
+              <p className="flex flex-wrap items-center gap-3 rounded border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-800">
+                <span>{busyText}</span>
+                {busy === 'batch' && <button onClick={() => { stop.current = true; }} className="font-semibold underline underline-offset-2">Arrêter après l'image en cours</button>}
+              </p>
+            )}
             {note && (
               <p className={`flex flex-wrap items-center gap-3 rounded border px-3 py-2 text-sm ${note.error ? 'border-red-300 bg-red-50 text-red-800' : 'border-neutral-300 bg-white text-neutral-800'}`}>
                 <span>{note.text}</span>
@@ -225,7 +277,10 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
                     </div>
 
                     <div className="flex flex-col gap-3 p-3 sm:flex-row">
-                      <div className="w-36 shrink-0"><ShotGlyph shot={h} /></div>
+                      <div className="w-36 shrink-0 space-y-2">
+                        <ShotGlyph shot={h} />
+                        {h.image && <img src={h.image.url} alt={`Image générée pour le plan ${n}`} loading="lazy" className="aspect-video w-full rounded border border-neutral-300 bg-neutral-100 object-cover" />}
+                      </div>
                       <div className="min-w-0 flex-1 space-y-3">
                         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
                           <label><span className={label}>Taille</span>
@@ -276,13 +331,12 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
                           <label className="block"><span className={label}>Prompt</span>
                             <textarea className={`${field} field-sizing-content min-h-24 resize-none`} value={h.prompt} onChange={(e) => edit(h.id, { prompt: e.target.value })} /></label>
                         )}
-                        {h.prompt?.trim() && (
                           <div className="space-y-2 border-t border-neutral-200 pt-3">
                             <div className="flex flex-wrap items-center gap-3">
-                              <Button variant="outline" size="sm" disabled={anyBusy || !falKey.trim()} onClick={() => makeImage(h)}>
+                              <Button variant="outline" size="sm" disabled={anyBusy || !falKey.trim() || !h.description.trim()} onClick={() => makeImage(h)}>
                                 {h.image ? 'Régénérer l\'image' : 'Générer l\'image'} · ≈ {fmtUsd(falModel(imgModel).usdPerImage)}
                               </Button>
-                              <span className="text-xs text-neutral-600">{falKey.trim() ? falModel(imgModel).label : 'Saisissez votre clé fal.ai dans « Images des plans », plus haut.'}</span>
+                              <span className="text-xs text-neutral-600">{!falKey.trim() ? 'Saisissez votre clé fal.ai dans « Images des plans », plus haut.' : !h.description.trim() ? 'Décrivez d\'abord le plan.' : `${falModel(imgModel).label}${h.prompt?.trim() ? '' : ' · le prompt sera rédigé automatiquement'}`}</span>
                             </div>
                             {h.image && (
                               <figure className="space-y-1">
@@ -295,7 +349,6 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
                               </figure>
                             )}
                           </div>
-                        )}
                       </div>
                     )}
 
