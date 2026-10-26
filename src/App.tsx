@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { exportDepouillement, exportPlanTravail } from './lib/exportXlsx';
+import { exportDecoupage, exportDepouillement, exportPlanTravail } from './lib/exportXlsx';
 import { useProject } from './lib/useProject';
 import { DecoupageView } from './components/DecoupageView';
 import { DessusView } from './components/DessusView';
@@ -28,6 +28,7 @@ export default function App() {
   const [error, setError] = useState('');
   const ready = project.scenes.length > 0;
 
+  const shotCount = project.scenes.reduce((n, s) => n + (s.shots?.length ?? 0), 0);
   const run = (f: () => Promise<void>) => f().then(() => setError(''), (e) => setError(`Export impossible : ${(e as Error).message}`));
 
   return (
@@ -46,6 +47,8 @@ export default function App() {
             disabled={!ready} onClick={() => run(() => exportDepouillement(project))}>Le dépouillement</Button>
           <Button variant="outline" size="sm" className="justify-start border-white/40 bg-transparent text-white hover:bg-white hover:text-black"
             disabled={!ready || !project.days.length} onClick={() => run(() => exportPlanTravail(project))}>Le plan de travail</Button>
+          <Button variant="outline" size="sm" className="justify-start border-white/40 bg-transparent text-white hover:bg-white hover:text-black"
+            disabled={!shotCount} onClick={() => run(() => exportDecoupage(project))}>Le découpage technique{shotCount ? ` · ${shotCount}` : ''}</Button>
         </div>
       </aside>
       <header className="flex flex-wrap items-center gap-x-4 gap-y-2 bg-[#222831] px-4 py-3 text-white md:hidden">
@@ -61,6 +64,8 @@ export default function App() {
               disabled={!ready} onClick={() => run(() => exportDepouillement(project))}>Le dépouillement</Button>
             <Button variant="outline" size="sm" className="justify-start border-white/40 bg-transparent text-white hover:bg-white hover:text-black"
               disabled={!ready || !project.days.length} onClick={() => run(() => exportPlanTravail(project))}>Le plan de travail</Button>
+            <Button variant="outline" size="sm" className="justify-start border-white/40 bg-transparent text-white hover:bg-white hover:text-black"
+              disabled={!shotCount} onClick={() => run(() => exportDecoupage(project))}>Le découpage technique{shotCount ? ` · ${shotCount}` : ''}</Button>
           </div>
         </details>
       </header>

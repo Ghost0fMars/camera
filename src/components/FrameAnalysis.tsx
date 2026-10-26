@@ -4,17 +4,18 @@ import { locateFrame } from '../lib/ai';
 import { describeFrame, sizeFromDetections, thumb, toJpeg } from '../lib/frame';
 import type { Shot } from '../types';
 
-const COLORS: Record<string, string> = { person: '#2471a3', face: '#c0392b' };
+const COLORS: Record<string, string> = { person: '#2471a3', face: '#6c3483' };
 
 export function FrameAnalysis({ shot, edit }: { shot: Shot; edit: (patch: Partial<Shot>) => void }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
+  const [last, setLast] = useState<File>();
   const frame = shot.frame;
   const size = frame ? sizeFromDetections(frame.detections) : null;
 
   const pick = async (file: File | undefined) => {
     if (!file) return;
-    setBusy(true); setMsg('');
+    setBusy(true); setMsg(''); setLast(file);
     try {
       const jpeg = await toJpeg(file);
       const detections = await locateFrame(jpeg);
@@ -34,7 +35,14 @@ export function FrameAnalysis({ shot, edit }: { shot: Shot; edit: (patch: Partia
         {frame && <Button variant="outline" size="sm" onClick={() => edit({ frame: undefined })}>Retirer</Button>}
         <span className="text-xs text-neutral-600">Prototype : modèle LocateAnything (NVIDIA), pour un usage non commercial</span>
       </div>
-      {msg && <p className="text-sm text-red-700">{msg}</p>}
+      <div role="status" aria-live="polite" className="empty:hidden">
+        {msg && (
+          <p className="flex flex-wrap items-center gap-3 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
+            <span>{msg}</span>
+            {last && <button onClick={() => void pick(last)} className="font-semibold underline underline-offset-2">Réessayer</button>}
+          </p>
+        )}
+      </div>
       {frame && (
         <div className="flex flex-wrap items-start gap-4">
           <div className="relative max-w-md">
@@ -49,7 +57,7 @@ export function FrameAnalysis({ shot, edit }: { shot: Shot; edit: (patch: Partia
           </div>
           <div className="space-y-2 text-sm">
             <p>{describeFrame(frame.detections)}</p>
-            <p className="text-xs text-neutral-500">Estimation d'après la taille du visage dans le cadre : à confirmer.</p>
+            <p className="text-xs text-neutral-600">Estimation d'après la taille du visage dans le cadre : à confirmer.</p>
             {size && shot.size !== size && <Button variant="outline" size="sm" onClick={() => edit({ size })}>Appliquer « {size} » au plan</Button>}
           </div>
         </div>

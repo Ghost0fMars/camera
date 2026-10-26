@@ -48,6 +48,7 @@ export interface Shot {
   move: string;            // valeur de MOVES (ou saisie libre)
   lens: string;            // optique, ex. « 35 mm »
   camera: string;          // « Cam 1 », lié au plan de scène
+  duration?: string;       // durée prévue, saisie libre (« 8 s »)
   description: string;
   notes: string;
   categories?: Categories; // dépouillement du plan (mêmes rubriques que la séquence)

@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { ChevronDown, ChevronRight, ChevronUp, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FrameAnalysis } from './FrameAnalysis';
+import { ShotGlyph } from './ShotGlyph';
 import { adviseScene, analyseShot, proposeShots } from '../lib/ai';
-import { exportDecoupage } from '../lib/exportXlsx';
 import { emptyShot, shotCats, shotItems, shotNumber, shotsFromCameras } from '../lib/shots';
 import { CATEGORIES, MOVES, SIZES, SIZE_NAMES, type CategoryKey, type Project, type Scene, type Shot } from '../types';
 
@@ -38,9 +38,13 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
   const set = (next: Shot[]) => updateScene(scene.id, { shots: next });
   const edit = (id: string, patch: Partial<Shot>) => set(shotsRef.current.map((h) => (h.id === id ? { ...h, ...patch } : h)));
   const swap = (i: number, j: number) => { const n = [...shots]; [n[i], n[j]] = [n[j], n[i]]; set(n); };
-  const offerUndo = (u: Undo) => { clearTimeout(timer.current); setUndo(u); timer.current = setTimeout(() => setUndo(null), 8000); };
+  const startTimer = () => { clearTimeout(timer.current); timer.current = setTimeout(() => setUndo(null), 12000); };
+  const offerUndo = (u: Undo) => { setUndo(u); startTimer(); };
+  const closeMenu = (e: { currentTarget: HTMLElement }) => { (e.currentTarget.closest('details') as HTMLDetailsElement).open = false; };
+  const busyText = busy === 'advise' ? 'Conseils de mise en scène en cours…' : busy === 'propose' ? 'Proposition de découpage en cours…' : busy?.startsWith('dep:') ? 'Dépouillement du plan en cours…' : '';
   const roles = project.roles.map((r) => r.name);
 
+  const fromCams = shotsFromCameras(scene);
   const run = async (key: string, task: () => Promise<string | void>) => {
     setBusy(key); setNote(null);
     try { const text = await task(); if (text) setNote({ text }); }
@@ -67,14 +71,18 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
     edit(h.id, { categories: await analyseShot(scene, h, roles) });
     return 'Proposition de l\'IA ajoutée dans les rubriques vides ; vos saisies sont conservées.';
   });
+  const fromCameras = () => {
+    const added = fromCams;
+    set([...shots, ...added]);
+    const ids = new Set(added.map((a) => a.id));
+    offerUndo({ text: `${plural(added.length, 'plan')} créé${added.length > 1 ? 's' : ''} depuis les caméras.`, restore: () => set(shotsRef.current.filter((x) => !ids.has(x.id))) });
+  };
   const dropIa = () => {
     const removed = shots.flatMap((h, i) => (h.origin === 'ia' ? [{ h, i }] : []));
     set(shots.filter((h) => h.origin !== 'ia'));
     offerUndo({ text: `${plural(removed.length, 'plan')} proposé${removed.length > 1 ? 's' : ''} par l'IA retiré${removed.length > 1 ? 's' : ''}.`, restore: () => { const n = [...shotsRef.current]; removed.forEach(({ h, i }) => n.splice(Math.min(i, n.length), 0, h)); set(n); } });
   };
 
-  const fromCams = shotsFromCameras(scene);
-  const total = project.scenes.reduce((n, s) => n + (s.shots?.length ?? 0), 0);
   const iaCount = shots.filter((h) => h.origin === 'ia').length;
   const anyBusy = busy !== null;
 
@@ -90,42 +98,38 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
       </nav>
 
       <div className="min-w-0 space-y-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <h2 className="font-serif text-xl italic">Séquence {scene.number} · {scene.decor} · {scene.ie} · {scene.effect}</h2>
-          <Button variant="outline" size="sm" className="ml-auto" disabled={!total} onClick={() => exportDecoupage(project)}>
-            Exporter tous les plans du film (Excel){total ? ` · ${total}` : ''}
-          </Button>
-        </div>
+        <h2 className="font-serif text-xl italic">Séquence {scene.number} · {scene.decor} · {scene.ie} · {scene.effect}</h2>
 
-        <details className="text-sm"><summary className="cursor-pointer py-1 text-neutral-700">Texte de la séquence</summary><pre className="mt-2 max-h-48 overflow-y-auto whitespace-pre-wrap rounded bg-white p-3 font-mono text-xs">{scene.text}</pre></details>
+        <details className="text-sm"><summary className="cursor-pointer py-1 text-neutral-700">Texte de la séquence</summary><pre className="mt-2 max-h-48 overflow-y-auto whitespace-pre-wrap rounded border border-neutral-300 bg-white p-3 font-mono text-xs">{scene.text}</pre></details>
 
-        <section aria-labelledby="mes" className="space-y-2 rounded border border-neutral-300 bg-white p-3">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <h3 id="mes" className="text-sm font-semibold">Assistance à la mise en scène</h3>
-            <span className="text-xs text-neutral-600">Socle : Eisenstein, <i>Leçons de mise en scène</i>, et l'intégrale dramatique</span>
-            <Button variant="outline" size="sm" className="ml-auto" disabled={anyBusy} onClick={advise}>
-              {busy === 'advise' ? 'Analyse en cours…' : scene.advice ? 'Régénérer les conseils' : 'Conseils de mise en scène (IA)'}
-            </Button>
+        <details key={scene.id} open={!!scene.advice} className="rounded border border-neutral-300 bg-white p-3 text-sm">
+          <summary className="cursor-pointer font-semibold">Assistance à la mise en scène <span className="font-normal text-neutral-600">· Eisenstein et intégrale dramatique</span></summary>
+          <div className="mt-2 space-y-2">
+            <Button variant="outline" size="sm" disabled={anyBusy} onClick={advise}>{scene.advice ? 'Régénérer les conseils' : 'Conseils de mise en scène (IA)'}</Button>
+            {scene.advice !== undefined && (
+              <textarea aria-label="Conseils de mise en scène" className={`${field} min-h-40`} placeholder="Les conseils de l'IA apparaissent ici ; vous pouvez les modifier."
+                value={scene.advice} onChange={(e) => updateScene(scene.id, { advice: e.target.value })} />
+            )}
           </div>
-          {(scene.advice || busy === 'advise') && (
-            <textarea aria-label="Conseils de mise en scène" className={`${field} min-h-40`} placeholder="Les conseils de l'IA apparaissent ici ; vous pouvez les modifier."
-              value={scene.advice ?? ''} onChange={(e) => updateScene(scene.id, { advice: e.target.value })} />
-          )}
-        </section>
+        </details>
 
         <section aria-labelledby="plans" className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             <h3 id="plans" className="mr-auto text-base font-semibold">Plans de la séquence · {shots.length}</h3>
             <Button size="sm" className={primary} onClick={() => set([...shots, emptyShot()])}>+ Ajouter un plan</Button>
-            <Button variant="outline" size="sm" disabled={anyBusy} onClick={propose}>{busy === 'propose' ? 'Analyse en cours…' : 'Proposer un découpage (IA)'}</Button>
-            <Button variant="outline" size="sm" disabled={!fromCams.length} onClick={() => set([...shots, ...fromCams])}>Un plan par caméra du plan de scène ({fromCams.length})</Button>
+            <details className="relative">
+              <summary className="inline-flex h-7 cursor-pointer list-none items-center gap-1 rounded-md border border-neutral-400 bg-white px-2.5 text-sm font-medium hover:bg-neutral-100 pointer-coarse:h-11">Autres façons de créer <ChevronDown className="size-4" aria-hidden /></summary>
+              <div className="absolute right-0 top-full z-10 mt-1 flex w-72 max-w-[85vw] flex-col gap-2 rounded border border-neutral-300 bg-white p-3 shadow-md">
+                <Button variant="outline" size="sm" disabled={anyBusy} onClick={(e) => { closeMenu(e); void propose(); }}>Proposer un découpage (IA)</Button>
+                <p className="text-xs text-neutral-600">Les plans proposés s'ajoutent à la suite de votre liste ; vous les gardez ou les retirez.</p>
+                <Button variant="outline" size="sm" disabled={!fromCams.length} onClick={(e) => { closeMenu(e); fromCameras(); }}>Un plan par caméra du plan de scène ({fromCams.length})</Button>
+                {!fromCams.length && <p className="text-xs text-neutral-600">Pour créer des plans depuis les caméras, posez-en dans la vue du dessus.</p>}
+              </div>
+            </details>
           </div>
-          <p className="text-sm text-neutral-600">
-            « Proposer » ajoute des plans à la suite de votre liste ; vous les gardez ou les retirez.
-            {!fromCams.length && ' Pour créer des plans depuis les caméras, posez-en dans la vue du dessus.'}
-          </p>
 
           <div role="status" aria-live="polite" className="space-y-2 empty:hidden">
+            {busyText && <p className="rounded border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-800">{busyText}</p>}
             {note && (
               <p className={`flex flex-wrap items-center gap-3 rounded border px-3 py-2 text-sm ${note.error ? 'border-red-300 bg-red-50 text-red-800' : 'border-neutral-300 bg-white text-neutral-800'}`}>
                 <span>{note.text}</span>
@@ -133,7 +137,8 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
               </p>
             )}
             {undo && (
-              <p className="flex flex-wrap items-center gap-3 rounded border border-neutral-700 bg-[#222831] px-3 py-2 text-sm text-white">
+              <p data-dark onMouseEnter={() => clearTimeout(timer.current)} onFocus={() => clearTimeout(timer.current)} onMouseLeave={startTimer} onBlur={startTimer}
+                className="flex flex-wrap items-center gap-3 rounded border border-neutral-700 bg-[#222831] px-3 py-2 text-sm text-white">
                 <span>{undo.text}</span>
                 <button onClick={() => { undo.restore(); setUndo(null); }} className="font-semibold underline underline-offset-2">Annuler</button>
               </p>
@@ -143,8 +148,8 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
           {iaCount > 0 && (
             <p className="flex flex-wrap items-center gap-3 text-sm">
               <span>{plural(iaCount, 'plan')} proposé{iaCount > 1 ? 's' : ''} par l'IA, pas encore gardé{iaCount > 1 ? 's' : ''}.</span>
-              <button onClick={() => set(shots.map((h) => ({ ...h, origin: undefined })))} className="px-1 py-1.5 font-semibold underline underline-offset-2">Tout garder</button>
-              <button onClick={dropIa} className="px-1 py-1.5 font-semibold text-red-800 underline underline-offset-2">Tout retirer</button>
+              <button onClick={() => set(shots.map((h) => ({ ...h, origin: undefined })))} className="px-1 py-1.5 font-semibold underline underline-offset-2 pointer-coarse:min-h-11">Tout garder</button>
+              <button onClick={dropIa} className="px-1 py-1.5 font-semibold text-red-800 underline underline-offset-2 pointer-coarse:min-h-11">Tout retirer</button>
             </p>
           )}
 
@@ -164,7 +169,7 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
                       {h.origin === 'ia' ? (
                         <>
                           <span className="rounded border border-neutral-700 px-1.5 text-xs">Proposé par l'IA</span>
-                          <button onClick={() => edit(h.id, { origin: undefined })} className="text-xs font-semibold underline underline-offset-2">Garder</button>
+                          <button onClick={() => edit(h.id, { origin: undefined })} className="px-1 py-1.5 text-xs font-semibold underline underline-offset-2 pointer-coarse:min-h-11">Garder</button>
                         </>
                       ) : !h.description.trim() && <span className="text-xs text-neutral-600">À décrire</span>}
                       <span className="ml-auto flex items-center gap-0.5">
@@ -175,13 +180,27 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 p-3 sm:grid-cols-4 lg:grid-cols-[7rem_9rem_6rem_6rem_minmax(0,1fr)_minmax(0,1fr)]">
-                      <label><span className={label}>Taille</span><input className={field} list="tailles" placeholder="PM" value={h.size} onChange={(e) => edit(h.id, { size: e.target.value })} /></label>
-                      <label><span className={label}>Mouvement</span><input className={field} list="mouvements" placeholder="Fixe" value={h.move} onChange={(e) => edit(h.id, { move: e.target.value })} /></label>
-                      <label><span className={label}>Optique</span><input className={field} placeholder="35 mm" value={h.lens} onChange={(e) => edit(h.id, { lens: e.target.value })} /></label>
-                      <label><span className={label}>Caméra</span><input className={field} placeholder="Cam 1" value={h.camera} onChange={(e) => edit(h.id, { camera: e.target.value })} /></label>
-                      <label className="col-span-2 sm:col-span-4 lg:col-span-1"><span className={label}>Description</span><textarea className={`${field} field-sizing-content min-h-16 resize-none`} value={h.description} onChange={(e) => edit(h.id, { description: e.target.value })} /></label>
-                      <label className="col-span-2 sm:col-span-4 lg:col-span-1"><span className={label}>Notes</span><textarea className={`${field} field-sizing-content min-h-16 resize-none`} value={h.notes} onChange={(e) => edit(h.id, { notes: e.target.value })} /></label>
+                    <div className="flex flex-col gap-3 p-3 sm:flex-row">
+                      <div className="w-36 shrink-0"><ShotGlyph shot={h} /></div>
+                      <div className="min-w-0 flex-1 space-y-3">
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+                          <label><span className={label}>Taille</span>
+                            <select className={field} value={h.size} onChange={(e) => edit(h.id, { size: e.target.value })}>
+                              <option value="">—</option>
+                              {h.size && !(SIZES as readonly string[]).includes(h.size) && <option value={h.size}>{h.size}</option>}
+                              {SIZES.map((s) => <option key={s} value={s}>{s} · {SIZE_NAMES[s]}</option>)}
+                            </select>
+                          </label>
+                          <label><span className={label}>Mouvement</span><input className={field} list="mouvements" placeholder="Fixe" value={h.move} onChange={(e) => edit(h.id, { move: e.target.value })} /></label>
+                          <label><span className={label}>Optique</span><input className={field} placeholder="35 mm" value={h.lens} onChange={(e) => edit(h.id, { lens: e.target.value })} /></label>
+                          <label><span className={label}>Caméra</span><input className={field} placeholder="Cam 1" value={h.camera} onChange={(e) => edit(h.id, { camera: e.target.value })} /></label>
+                          <label><span className={label}>Durée</span><input className={field} placeholder="8 s" value={h.duration ?? ''} onChange={(e) => edit(h.id, { duration: e.target.value })} /></label>
+                        </div>
+                        <div className="grid gap-3 md:grid-cols-2">
+                          <label><span className={label}>Description</span><textarea className={`${field} field-sizing-content min-h-16 resize-none`} value={h.description} onChange={(e) => edit(h.id, { description: e.target.value })} /></label>
+                          <label><span className={label}>Notes</span><textarea className={`${field} field-sizing-content min-h-16 resize-none`} value={h.notes} onChange={(e) => edit(h.id, { notes: e.target.value })} /></label>
+                        </div>
+                      </div>
                     </div>
 
                     <div className="flex flex-wrap gap-2 border-t border-neutral-200 px-3 py-2">
@@ -209,12 +228,8 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
             </ol>
           )}
 
-          <details className="text-sm text-neutral-700"><summary className="cursor-pointer py-1">Légende des valeurs de plan</summary>
-            <p className="mt-1">{SIZES.map((s) => `${s} ${SIZE_NAMES[s].toLowerCase()}`).join(' · ')}</p>
-          </details>
         </section>
 
-        <datalist id="tailles">{SIZES.map((s) => <option key={s} value={s} label={SIZE_NAMES[s]} />)}</datalist>
         <datalist id="mouvements">{MOVES.map((m) => <option key={m} value={m} />)}</datalist>
       </div>
     </div>

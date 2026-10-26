@@ -21,7 +21,7 @@
   }
   ::selection { background: #FFD369; color: #222831; }
   :focus-visible { outline: 2px solid #222831; outline-offset: 2px; }
-  header :focus-visible { outline-color: #FFD369; }
+  header :focus-visible, aside :focus-visible, [data-dark] :focus-visible { outline-color: #FFD369; }
 }
 
 .markdown-body {

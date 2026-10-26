@@ -143,7 +143,7 @@ Une palette d'ardoise et de papier, avec un seul jaune qui signale « vous êtes
 
 ## Layout
 
-Un panneau latéral sombre à gauche (15 rem, fixe) porte le titre, le menu des sections et les exports Excel en bas ; à sa droite, la zone de travail, où la liste des séquences (14 rem) s'ajoute à gauche du contenu dans les vues par séquence. Les blocs se superposent dans une colonne unique avec un rythme de 12 à 16 px (`space-y-3` et `space-y-4`) ; les cartes de plans ont 12 px de remplissage, avec une grille de champs à six colonnes sur grand écran, quatre sur tablette, deux sur téléphone.
+Un panneau latéral sombre à gauche (15 rem, fixe) porte le titre, le menu des sections et, en bas, les trois exports Excel (dépouillement, plan de travail, découpage technique) ; à sa droite, la zone de travail, où la liste des séquences (14 rem) s'ajoute à gauche du contenu dans les vues par séquence. Les blocs se superposent dans une colonne unique avec un rythme de 12 à 16 px (`space-y-3` et `space-y-4`) ; les cartes de plans ont 12 px de remplissage : une vignette à gauche, puis une grille de cinq champs (trois sur tablette, deux sur téléphone) et, dessous, Description et Notes côte à côte. Dans le Découpage, l'en-tête se limite au titre de la séquence, à deux volets fermés (texte, assistance à la mise en scène) et à la barre des plans (« + Ajouter un plan » et le menu « Autres façons de créer »).
 
 Sous 768 px, le panneau latéral devient un bandeau sombre en haut : les sections passent dans une liste déroulante, les exports dans un menu « Exporter (Excel) », et la liste des séquences devient une barre défilante horizontale. Sur écran tactile, boutons, champs et listes montent à 44 px de haut. Marge de page : 12 px sur téléphone, 20 px au-delà.
 
@@ -168,8 +168,8 @@ Angles de 4 px partout (boutons, champs, cartes, pastilles) : une forme de papie
 - **Icon:** carré de 36 px (44 px tactile), sans bordure au repos, filet et fond au survol, `aria-label` obligatoire.
 
 ### Inputs / Fields
-- **Style:** fond blanc, filet gris (#A3A3A3), angles de 4 px, texte 14 px, libellé de 12 px au-dessus.
-- **Focus:** contour ardoise de 2 px décalé de 1 px ; jamais retiré.
+- **Style:** fond blanc, filet gris (#A3A3A3), angles de 4 px, texte 14 px, libellé de 12 px au-dessus. La taille de plan est un menu natif (« PM · Plan moyen ») : une valeur saisie auparavant hors liste est conservée comme option.
+- **Focus:** contour ardoise de 2 px décalé de 1 px ; jamais retiré. Sur fond ardoise (panneau latéral, en-tête mobile, bandeau d'annulation), le contour passe en jaune de l'atelier.
 - **Error / Disabled:** les erreurs d'IA s'affichent dans un bandeau rouge sur fond d'alerte avec « Réessayer » ; les contrôles inactifs perdent de l'opacité sans changer de forme.
 
 ### Navigation
@@ -177,10 +177,10 @@ Angles de 4 px partout (boutons, champs, cartes, pastilles) : une forme de papie
 - **Liste des séquences:** boutons pleine largeur ; la séquence active est en jaune, semi-gras, avec `aria-current`.
 
 ### Plan Card (composant signature)
-Une carte blanche à filet doux par plan : ligne d'en-tête (numéro, statut, flèches, suppression), grille de champs étiquetés, pied avec deux volets dépliables (analyse du cadre, dépouillement). Le statut est lisible : « À décrire » en texte secondaire, « Proposé par l'IA » en pastille à filet avec « Garder ».
+Une carte blanche à filet doux par plan : ligne d'en-tête (numéro, statut, flèches, suppression), vignette (l'image analysée si elle existe, sinon le cadrage de la valeur de plan en pictogramme plat à filet), grille de champs étiquetés (taille, mouvement, optique, caméra, durée), pied avec deux volets dépliables (analyse du cadre, dépouillement). Le statut est lisible : « À décrire » en texte secondaire, « Proposé par l'IA » en pastille à filet avec « Garder ».
 
 ### Feedback Banners
-Bandeau d'annulation ardoise avec texte blanc et « Annuler » souligné (8 secondes) ; bandeau d'information blanc à filet ; bandeau d'erreur rouge sur fond d'alerte. Tous dans une région `role="status"` placée juste au-dessus de la liste concernée.
+Bandeau d'annulation ardoise avec texte blanc et « Annuler » souligné (12 secondes, suspendues au survol et au focus) ; ligne d'état pendant une analyse de l'IA ; bandeau d'information blanc à filet ; bandeau d'erreur rouge sur fond d'alerte. Tous dans une région `role="status"` placée juste au-dessus de la liste concernée.
 
 ## Do's and Don'ts
 

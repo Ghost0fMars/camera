@@ -179,7 +179,7 @@
       "name": "Bandeau d'annulation",
       "kind": "custom",
       "refersTo": "toast-undo",
-      "description": "Confirme une action destructive et propose de la défaire pendant 8 secondes.",
+      "description": "Confirme une action destructive et propose de la défaire pendant 12 secondes.",
       "html": "<p class=\"ds-toast\"><span>Plan 1.2 supprimé.</span><button class=\"ds-toast-btn\">Annuler</button></p>",
       "css": ".ds-toast{display:flex;align-items:center;gap:12px;margin:0;padding:8px 12px;border:1px solid #404040;border-radius:4px;background:#222831;color:#fff;font:400 14px Barlow,system-ui,sans-serif}.ds-toast-btn{border:0;background:none;padding:0;color:#fff;font:600 14px Barlow,system-ui,sans-serif;text-decoration:underline;text-underline-offset:2px;cursor:pointer}.ds-toast-btn:focus-visible{outline:2px solid #FFD369;outline-offset:2px}"
     }
