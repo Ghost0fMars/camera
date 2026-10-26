@@ -150,8 +150,8 @@ export const exportPlanTravail = async (p: Project) => { const r = await buildPl
 export async function buildDecoupage(p: Project) {
   const wb = await newWorkbook();
   addTable(wb, 'DÉCOUPAGE TECHNIQUE',
-    [['Plan', 7], ['Séq', 6], ['Décor', 30], ['I/E', 7], ['Effet', 12], ['Taille', 9], ['Mouvement', 14], ['Optique', 10], ['Caméra', 9], ['Durée', 9], ['Description', 60], ['Notes', 40]].map(([header, width]) => ({ header: String(header), width: Number(width) })),
-    allShots(p.scenes).map(({ s, h, n }) => [n, s.number, s.decor, s.ie, s.effect, h.size, h.move, h.lens, h.camera, h.duration ?? '', h.description, h.notes]));
+    [['Plan', 7], ['Séq', 6], ['Décor', 30], ['I/E', 7], ['Effet', 12], ['Taille', 9], ['Mouvement', 14], ['Optique', 10], ['Caméra', 9], ['Durée', 9], ['Description', 60], ['Notes', 40], ['Prompt image / vidéo', 60]].map(([header, width]) => ({ header: String(header), width: Number(width) })),
+    allShots(p.scenes).map(({ s, h, n }) => [n, s.number, s.decor, s.ie, s.effect, h.size, h.move, h.lens, h.camera, h.duration ?? '', h.description, h.notes, h.prompt ?? '']));
   addTable(wb, 'DÉPOUILLEMENT PAR PLAN',
     [{ header: 'Plan', width: 7 }, { header: 'Description', width: 40 }, ...CATEGORIES.map((c) => ({ header: c.label, width: 24 }))],
     allShots(p.scenes).map(({ h, n }) => [n, h.description, ...CATEGORIES.map((c) => shotCats(h)[c.key].join('\n'))]));

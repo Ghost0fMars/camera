@@ -3,7 +3,7 @@ import { ChevronDown, ChevronRight, ChevronUp, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FrameAnalysis } from './FrameAnalysis';
 import { ShotGlyph } from './ShotGlyph';
-import { adviseScene, analyseShot, proposeShots } from '../lib/ai';
+import { adviseScene, analyseShot, proposeShots, shotPrompt } from '../lib/ai';
 import { emptyShot, shotCats, shotItems, shotNumber, shotsFromCameras } from '../lib/shots';
 import { CATEGORIES, MOVES, SIZES, SIZE_NAMES, type CategoryKey, type Project, type Scene, type Shot } from '../types';
 
@@ -26,6 +26,8 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
   const [undo, setUndo] = useState<Undo | null>(null);
   const [frameOpen, setFrameOpen] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
+  const [promptOpen, setPromptOpen] = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const sorted = [...project.scenes].sort((a, b) => a.number - b.number);
   const scene = sorted.find((s) => s.id === sceneId) ?? sorted[0];
@@ -41,7 +43,7 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
   const startTimer = () => { clearTimeout(timer.current); timer.current = setTimeout(() => setUndo(null), 12000); };
   const offerUndo = (u: Undo) => { setUndo(u); startTimer(); };
   const closeMenu = (e: { currentTarget: HTMLElement }) => { (e.currentTarget.closest('details') as HTMLDetailsElement).open = false; };
-  const busyText = busy === 'advise' ? 'Conseils de mise en scène en cours…' : busy === 'propose' ? 'Proposition de découpage en cours…' : busy?.startsWith('dep:') ? 'Dépouillement du plan en cours…' : '';
+  const busyText = busy === 'advise' ? 'Conseils de mise en scène en cours…' : busy === 'propose' ? 'Proposition de découpage en cours…' : busy?.startsWith('dep:') ? 'Dépouillement du plan en cours…' : busy?.startsWith('prompt:') ? 'Rédaction du prompt en cours…' : '';
   const roles = project.roles.map((r) => r.name);
 
   const fromCams = shotsFromCameras(scene);
@@ -76,6 +78,15 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
     set([...shots, ...added]);
     const ids = new Set(added.map((a) => a.id));
     offerUndo({ text: `${plural(added.length, 'plan')} créé${added.length > 1 ? 's' : ''} depuis les caméras.`, restore: () => set(shotsRef.current.filter((x) => !ids.has(x.id))) });
+  };
+  const writePrompt = (h: Shot) => run(`prompt:${h.id}`, async () => {
+    const before = h.prompt;
+    edit(h.id, { prompt: await shotPrompt(scene, h, roles) });
+    if (before) offerUndo({ text: 'Prompt remplacé.', restore: () => edit(h.id, { prompt: before }) });
+  });
+  const copy = async (h: Shot) => {
+    try { await navigator.clipboard.writeText(h.prompt ?? ''); setCopied(h.id); setTimeout(() => setCopied(null), 2000); }
+    catch { setNote({ text: 'Copie impossible : sélectionnez le texte et copiez-le à la main.', error: true }); }
   };
   const dropIa = () => {
     const removed = shots.flatMap((h, i) => (h.origin === 'ia' ? [{ h, i }] : []));
@@ -214,9 +225,28 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
                         {open === h.id ? <ChevronDown className="size-4" aria-hidden /> : <ChevronRight className="size-4" aria-hidden />}
                         Dépouillement du plan{items ? ` · ${plural(items, 'élément')}` : ''}
                       </button>
+                      <button aria-expanded={promptOpen === h.id} aria-controls={`prompt-${h.id}`} onClick={() => setPromptOpen(promptOpen === h.id ? null : h.id)}
+                        className="inline-flex min-h-9 items-center gap-1 rounded border border-neutral-400 px-2.5 text-sm hover:bg-neutral-100 pointer-coarse:min-h-11">
+                        {promptOpen === h.id ? <ChevronDown className="size-4" aria-hidden /> : <ChevronRight className="size-4" aria-hidden />}
+                        Prompt image / vidéo{h.prompt ? ' · rédigé' : ''}
+                      </button>
                     </div>
 
-                    {frameOpen === h.id && <div id={`cadre-${h.id}`} className="border-t border-neutral-200 bg-neutral-50 px-3 py-3"><FrameAnalysis shot={h} edit={(patch) => edit(h.id, patch)} /></div>}
+                    {promptOpen === h.id && (
+                      <div id={`prompt-${h.id}`} className="space-y-2 border-t border-neutral-200 bg-neutral-50 px-3 py-3">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <Button variant="outline" size="sm" disabled={anyBusy || !h.description.trim()} onClick={() => writePrompt(h)}>{h.prompt ? 'Régénérer le prompt' : 'Rédiger le prompt (IA)'}</Button>
+                          {h.prompt && <Button variant="outline" size="sm" onClick={() => void copy(h)}>{copied === h.id ? 'Copié' : 'Copier'}</Button>}
+                          <span className="text-xs text-neutral-600">{h.description.trim() ? 'En anglais, prêt à coller dans un générateur d\'images ou de vidéos.' : 'Décrivez d\'abord le plan.'}</span>
+                        </div>
+                        {h.prompt !== undefined && (
+                          <label className="block"><span className={label}>Prompt</span>
+                            <textarea className={`${field} field-sizing-content min-h-24 resize-none`} value={h.prompt} onChange={(e) => edit(h.id, { prompt: e.target.value })} /></label>
+                        )}
+                      </div>
+                    )}
+
+                    {frameOpen === h.id &&<div id={`cadre-${h.id}`} className="border-t border-neutral-200 bg-neutral-50 px-3 py-3"><FrameAnalysis shot={h} edit={(patch) => edit(h.id, patch)} /></div>}
                     {open === h.id && (
                       <div id={`dep-${h.id}`} className="border-t border-neutral-200 bg-neutral-50 px-3 py-3">
                         <Breakdown shot={h} busy={busy === `dep:${h.id}`} disabled={anyBusy} onAi={() => analyse(h)} onChange={(categories) => edit(h.id, { categories })} />

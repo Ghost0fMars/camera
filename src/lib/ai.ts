@@ -1,5 +1,7 @@
-import type { Categories, Scene, Shot } from '../types';
+import type { Categories, Project, Scene, Shape, Shot } from '../types';
 import type { Detection } from './frame';
+import { nextCamera } from './plan';
+import { newId } from './planning';
 import { emptyShot, shotCats } from './shots';
 
 export interface Analysis { summary: string; continuity: string; categories: Categories }
@@ -34,6 +36,58 @@ export async function proposeShots(scene: Scene, roles: string[], all: Scene[] =
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
   return (data.shots as Omit<Shot, 'id'>[]).map((h) => emptyShot({ ...h, origin: 'ia' }));
+}
+
+/** Esquisse un plan de scène (vue du dessus) d'après le texte de la séquence ; les éléments sont marqués « origin: ia » et les caméras numérotées à la suite des vôtres. */
+export async function proposePlan(scene: Scene, roles: string[]): Promise<Shape[]> {
+  const res = await fetch('/api/plan', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: scene.text, decor: scene.decor, roles }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
+  const all = [...(scene.plan ?? [])];
+  return (data.shapes as Omit<Shape, 'id'>[]).map((s) => {
+    const shape = { ...s, id: newId('p'), origin: 'ia' } as Shape;
+    if (shape.kind === 'camera') shape.label = nextCamera(all);
+    all.push(shape);
+    return shape;
+  });
+}
+
+export interface Schedule {
+  resume: string; days: { lieu: string; motif: string; sequences: number[] }[]; unplaced: number[];
+  alerts: string[];                       // contrôles calculés : jour mêlé à la nuit, journée trop longue
+  convocations: Record<string, number>;   // nombre de jours de présence par comédien
+}
+
+/** Propose un nombre de jours de tournage et la répartition des séquences par jour (rien n'est appliqué). */
+export async function proposeSchedule(p: Project, contraintes: string): Promise<Schedule> {
+  const scenes = p.scenes.map((s) => ({
+    number: s.number, decor: s.decor, ie: s.ie, effect: s.effect, durationSec: s.durationSec, shootMin: s.shootMin, roles: s.roles,
+    extras: (['effets', 'vehicules', 'silhouettes'] as const).flatMap((k) => s.categories[k] ?? []).slice(0, 6),
+  }));
+  const res = await fetch('/api/calendrier', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ scenes, contraintes }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
+  return data as Schedule;
+}
+
+/** Prompt (en anglais) pour une IA d'images ou de vidéos, d'après un plan et sa séquence. */
+export async function shotPrompt(scene: Scene, shot: Shot, roles: string[]): Promise<string> {
+  const res = await fetch('/api/prompt', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: scene.text, decor: scene.decor, ie: scene.ie, effect: scene.effect, roles, shot: { size: shot.size, move: shot.move, lens: shot.lens, description: shot.description, notes: shot.notes } }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
+  return data.prompt as string;
 }
 
 /** Dépouillement d'un plan : l'IA ne remplit que les rubriques encore vides. */

@@ -10,7 +10,10 @@ import { parseSse } from '../api/locate.js';
 import { describeFrame, sizeFromDetections } from '../src/lib/frame';
 import { chapterTitle, chunkText, search } from '../api/_eisenstein.js';
 import { cleanShots } from '../api/decoupage';
-import { dayStats, fmtDur, parseDur, recap } from '../src/lib/planning';
+import { cleanPlan } from '../api/plan';
+import { cleanPrompt } from '../api/prompt';
+import { baseSchedule, capFrom, cleanSchedule, review, type SceneIn } from '../api/calendrier';
+import { applySchedule, dayStats, fmtDur, parseDur, recap } from '../src/lib/planning';
 import { parseScript, parseSlug } from '../src/lib/screenplay';
 import { EMPTY_PROJECT, emptyCategories } from '../src/types';
 
@@ -111,4 +114,45 @@ assert.match(positionContext({ index: 2, total: 5, previous: 'A', next: 'B' }), 
 assert.equal(positionContext(undefined), '');
 assert.deepEqual(position(p.scenes[1], p.scenes), { index: 2, total: 3, previous: position(p.scenes[1], p.scenes)!.previous, next: position(p.scenes[1], p.scenes)!.next });
 assert.equal(position(p.scenes[0], p.scenes)!.previous, undefined);
+const plan = cleanPlan({
+  walls: [{ a: [1, 1], b: [19, 1] }, { a: [3, 3], b: [3, 3] }, { a: ['x', 1], b: [2, 2] }],
+  furniture: [{ label: 'table', a: [8, 4], b: [12, 7] }],
+  characters: [{ name: 'VINCENT', at: [4, 6] }, { name: 'VINCENT', at: [9, 9] }, { name: 'CLÉMENCE', at: [30, -2] }],
+  moves: [{ who: 'VINCENT', path: [[5, 6], [10, 6]] }, { who: 'INCONNU', path: [[2, 2], [6, 2]] }, { path: [[1, 1]] }],
+  cameras: [{ at: [2, 10], look: [12, 10] }, { at: [18, 10] }],
+});
+assert.equal(plan.filter((s) => s.kind === 'line').length, 1);
+assert.deepEqual(plan.find((s) => s.kind === 'line'), { kind: 'line', a: { x: 50, y: 53 }, b: { x: 950, y: 53 } });
+assert.equal(plan.filter((s) => s.kind === 'rect').length, 1);
+assert.equal(plan.filter((s) => s.kind === 'text').length, 1);
+assert.deepEqual(plan.filter((s) => s.kind === 'char').map((s) => s.kind === 'char' && s.name), ['VINCENT', 'CLÉMENCE']);
+assert.deepEqual(plan.find((s) => s.kind === 'char' && s.name === 'CLÉMENCE'), { kind: 'char', at: { x: 1000, y: 0 }, name: 'CLÉMENCE' });
+const moves = plan.filter((s) => s.kind === 'move');
+assert.equal(moves.length, 2);
+assert.equal(moves[0].kind === 'move' && moves[0].who, 'VINCENT');
+assert.equal(moves[0].kind === 'move' && moves[0].pts[0].x, 200);
+assert.equal(moves[1].kind === 'move' && moves[1].who, undefined);
+assert.deepEqual(plan.filter((s) => s.kind === 'camera').map((s) => s.kind === 'camera' && s.angle), [0, 0]);
+assert.deepEqual(cleanPlan({}), []);
+assert.equal(cleanPrompt({ prompt: '  A wide shot.\n\n  Night.  ' }), 'A wide shot. Night.');
+assert.equal(cleanPrompt({ prompt: 42 }), '');
+assert.equal(cleanPrompt({ prompt: 'x'.repeat(2000) }).length, 1200);
+const sched = cleanSchedule({ resume: ' Deux jours. ', days: [{ lieu: 'Bar', sequences: [2, '1', 9, 2] }, { lieu: 'x', sequences: [42] }, { sequences: [3] }] }, [1, 2, 3, 4]);
+assert.equal(sched.resume, 'Deux jours.');
+assert.deepEqual(sched.days.map((d) => d.sequences), [[2, 1], [3]]);
+assert.deepEqual(sched.unplaced, [4]);
+const mkScene = (number: number, decor: string, effect: string, shootMin: number, roles: string[] = []): SceneIn => ({ number, decor, ie: 'INT.', effect, durationSec: 60, shootMin, roles, extras: [] });
+const film = [mkScene(1, 'PALIER', 'NUIT', 120, ['V']), mkScene(2, 'RUE', 'NUIT', 180, ['C', 'V']), mkScene(3, 'PALIER', 'JOUR', 60, ['V']), mkScene(4, 'BAR : SALLE', 'NUIT', 240, ['C']), mkScene(5, 'BAR : RÉSERVE', 'NUIT', 90, ['C']), mkScene(6, 'RUE', 'JOUR', 90, ['C'])];
+assert.equal(capFrom('Journées de 6 h maximum.'), 360);
+assert.equal(capFrom(''), 480);
+const base = baseSchedule(film, 480);
+assert.deepEqual(base.map((d) => d.sequences), [[1, 2], [3, 6], [4, 5]]);
+assert.equal(base.flatMap((d) => d.sequences).length, 6);
+assert.deepEqual(review(base, film, 480), { alerts: [], convocations: { V: 2, C: 3 } });
+assert.equal(review([{ lieu: '', motif: '', sequences: [1, 2, 3, 4] }], film, 480).alerts.length, 2);
+const planned = applySchedule({ ...EMPTY_PROJECT, scenes: [1, 2, 3, 4].map((n) => ({ ...p.scenes[0], id: `q${n}`, number: n, dayId: 'ancien' })), days: [{ id: 'ancien', lieu: '', notes: '' }] }, sched.days);
+assert.equal(planned.days.length, 2);
+assert.deepEqual(planned.scenes.map((s) => s.number), [2, 1, 3, 4]);
+assert.deepEqual(planned.scenes.map((s) => s.dayId === null ? null : planned.days.findIndex((d) => d.id === s.dayId)), [0, 0, 1, null]);
+assert.equal(planned.days[0].lieu, 'Bar');
 console.log('OK');

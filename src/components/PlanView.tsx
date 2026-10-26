@@ -1,12 +1,38 @@
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { dayDate, dayScenes, dayStats, fmtDur, fmtHours, newId } from '../lib/planning';
+import { useEffect, useRef, useState } from 'react';
+import { proposeSchedule, type Schedule } from '../lib/ai';
+import { applySchedule, dayDate, dayScenes, dayStats, fmtDur, fmtHours, newId } from '../lib/planning';
 import type { Project, Scene } from '../types';
+
+const box = 'w-full rounded border border-neutral-400 bg-white px-2 py-1.5 text-sm focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#222831]';
 
 export function PlanView({ project, update, updateScene }: {
   project: Project; update: (f: (p: Project) => Project) => void; updateScene: (id: string, patch: Partial<Scene>) => void;
 }) {
+  const [contraintes, setContraintes] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [proposal, setProposal] = useState<Schedule | null>(null);
+  const [undo, setUndo] = useState<{ days: Project['days']; scenes: Project['scenes'] } | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  const startTimer = () => { clearTimeout(timer.current); timer.current = setTimeout(() => setUndo(null), 12000); };
+  const byNumber = new Map(project.scenes.map((s) => [s.number, s]));
+
+  const propose = async () => {
+    setBusy(true); setError(''); setProposal(null);
+    try { setProposal(await proposeSchedule(project, contraintes)); }
+    catch (e) { setError((e as Error).message); }
+    setBusy(false);
+  };
+  const apply = () => {
+    if (!proposal) return;
+    setUndo({ days: project.days, scenes: project.scenes }); startTimer();
+    update((p) => applySchedule(p, proposal.days));
+    setProposal(null);
+  };
   const unassigned = project.scenes.filter((s) => !s.dayId || !project.days.some((d) => d.id === s.dayId));
   const addDay = () => update((p) => ({ ...p, days: [...p.days, { id: newId('d'), lieu: '', notes: '' }] }));
   const removeDay = (id: string) => update((p) => ({
@@ -31,6 +57,59 @@ export function PlanView({ project, update, updateScene }: {
         <Button variant="outline" size="sm" onClick={addDay}>Ajouter un jour</Button>
         <span className="text-xs text-neutral-500">Affectez les séquences aux jours ici ou dans le séquencier.</span>
       </div>
+      <details className="rounded border border-neutral-300 bg-white p-3 text-sm" open={!!proposal || !!error}>
+        <summary className="cursor-pointer font-semibold">Assistance au plan de travail <span className="font-normal text-neutral-600">· jours de tournage et répartition des séquences</span></summary>
+        <div className="mt-2 space-y-2">
+          <label className="block"><span className="mb-1 block text-xs font-medium text-neutral-700">Contraintes (facultatif)</span>
+            <textarea className={`${box} field-sizing-content min-h-10 resize-none`} placeholder="Ex. : journées de 6 h, Clémence disponible seulement 2 jours, l'extérieur d'abord"
+              value={contraintes} onChange={(e) => setContraintes(e.target.value)} /></label>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button variant="outline" size="sm" disabled={busy || !project.scenes.length} onClick={() => void propose()}>Proposer un calendrier (IA)</Button>
+            <span className="text-xs text-neutral-600">{project.days.length ? 'Appliquer remplace vos jours actuels ; vous pourrez annuler.' : 'Rien n\'est appliqué avant votre accord.'}</span>
+          </div>
+        </div>
+      </details>
+      <div role="status" aria-live="polite" className="space-y-2 empty:hidden">
+        {busy && <p className="rounded border border-neutral-300 bg-white px-3 py-2 text-sm">Calendrier en cours de proposition…</p>}
+        {error && (
+          <p className="flex flex-wrap items-center gap-3 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
+            <span>{error}</span><button onClick={() => void propose()} className="font-semibold underline underline-offset-2">Réessayer</button>
+          </p>
+        )}
+        {undo && (
+          <p data-dark onMouseEnter={() => clearTimeout(timer.current)} onFocus={() => clearTimeout(timer.current)} onMouseLeave={startTimer} onBlur={startTimer}
+            className="flex flex-wrap items-center gap-3 rounded border border-neutral-700 bg-[#222831] px-3 py-2 text-sm text-white">
+            <span>Calendrier appliqué.</span>
+            <button onClick={() => { update((p) => ({ ...p, days: undo.days, scenes: undo.scenes })); setUndo(null); }} className="font-semibold underline underline-offset-2">Annuler</button>
+          </p>
+        )}
+      </div>
+      {proposal && (
+        <section aria-label="Proposition de calendrier" className="space-y-3 rounded border border-neutral-700 bg-white p-3">
+          <h3 className="text-base font-semibold">Proposition de l'IA : {proposal.days.length} jour{proposal.days.length > 1 ? 's' : ''} de tournage</h3>
+          {proposal.resume && <p className="text-sm text-neutral-800">{proposal.resume}</p>}
+          <ol className="space-y-2">
+            {proposal.days.map((d, i) => {
+              const sc = d.sequences.flatMap((n) => byNumber.get(n) ?? []);
+              return (
+                <li key={i} className="rounded border border-neutral-300 px-3 py-2 text-sm">
+                  <p className="font-semibold">Jour {i + 1}{d.lieu ? ` · ${d.lieu}` : ''} <span className="font-normal text-neutral-600">· séq. {d.sequences.join(', ')} · {fmtHours(sc.reduce((a, s) => a + s.shootMin, 0))} h de tournage · {fmtDur(sc.reduce((a, s) => a + s.durationSec, 0))} à l'écran</span></p>
+                  {d.motif && <p className="text-neutral-700">{d.motif}</p>}
+                </li>
+              );
+            })}
+          </ol>
+          {Object.keys(proposal.convocations).length > 0 && (
+            <p className="text-sm text-neutral-800"><span className="font-semibold">Jours de présence :</span> {Object.entries(proposal.convocations).map(([r, n]) => `${r} ${n}`).join(' · ')}</p>
+          )}
+          {proposal.alerts.length > 0 && <ul className="list-disc pl-5 text-sm text-red-800">{proposal.alerts.map((a) => <li key={a}>{a}</li>)}</ul>}
+          {proposal.unplaced.length > 0 && <p className="text-sm text-red-800">Séquences laissées de côté par l'IA (elles resteront non planifiées) : {proposal.unplaced.join(', ')}.</p>}
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" className="bg-[#222831] text-white hover:bg-[#393E46]" onClick={apply}>Appliquer cette proposition</Button>
+            <Button variant="outline" size="sm" onClick={() => setProposal(null)}>Ignorer</Button>
+          </div>
+        </section>
+      )}
       {unassigned.length > 0 && (
         <div className="rounded border border-dashed border-neutral-400 bg-white p-3">
           <h3 className="mb-2 text-xs font-bold uppercase tracking-widest text-neutral-500">Non planifiées ({unassigned.length})</h3>

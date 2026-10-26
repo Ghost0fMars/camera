@@ -29,7 +29,7 @@ export const emptyCategories = (): Categories =>
 export interface Pt { x: number; y: number }
 
 /** Éléments du plan de scène en vue du dessus (coordonnées dans un repère 1000 × 640). */
-export type Shape = { id: string } & (
+export type Shape = { id: string; origin?: 'ia' } & (
   | { kind: 'pen' | 'move'; pts: Pt[]; who?: string }  // tracé libre / déplacement (flèche) d'un personnage ou d'une caméra
   | { kind: 'line' | 'rect'; a: Pt; b: Pt }
   | { kind: 'camera'; at: Pt; angle: number; label: string }
@@ -49,6 +49,7 @@ export interface Shot {
   lens: string;            // optique, ex. « 35 mm »
   camera: string;          // « Cam 1 », lié au plan de scène
   duration?: string;       // durée prévue, saisie libre (« 8 s »)
+  prompt?: string;         // prompt image / vidéo généré pour ce plan
   description: string;
   notes: string;
   categories?: Categories; // dépouillement du plan (mêmes rubriques que la séquence)

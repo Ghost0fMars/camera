@@ -2,6 +2,9 @@ import dotenv from 'dotenv';
 import express from 'express';
 import analyseHandler from './api/analyse.js';
 import decoupageHandler from './api/decoupage.js';
+import calendrierHandler from './api/calendrier.js';
+import planHandler from './api/plan.js';
+import promptHandler from './api/prompt.js';
 import miseEnSceneHandler from './api/mise-en-scene.js';
 import locateHandler from './api/locate.js';
 
@@ -12,6 +15,9 @@ const app = express();
 app.use(express.json({ limit: '10mb' }));
 app.post('/api/analyse', analyseHandler);
 app.post('/api/decoupage', decoupageHandler);
+app.post('/api/plan', planHandler);
+app.post('/api/calendrier', calendrierHandler);
+app.post('/api/prompt', promptHandler);
 app.post('/api/mise-en-scene', miseEnSceneHandler);
 app.post('/api/locate', locateHandler);
 

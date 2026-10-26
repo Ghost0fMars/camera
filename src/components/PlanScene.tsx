@@ -1,5 +1,6 @@
 import { useRef, useState, type PointerEvent } from 'react';
 import { Button } from '@/components/ui/button';
+import { proposePlan } from '../lib/ai';
 import { angleOf, arrowHead, H, nextCamera, ownerOf, shift, W } from '../lib/plan';
 import { newId } from '../lib/planning';
 import type { Project, Pt, Scene, Shape } from '../types';
@@ -20,6 +21,8 @@ export function PlanScene({ project, scene, updateScene }: {
   const [tool, setTool] = useState<Tool>('pen');
   const [who, setWho] = useState('');
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
   const svg = useRef<SVGSVGElement>(null);
   const drag = useRef<{ id: string; last: Pt } | null>(null);
   const plan = scene.plan ?? [];
@@ -31,6 +34,16 @@ export function PlanScene({ project, scene, updateScene }: {
   const at = (e: PointerEvent): Pt => {
     const r = svg.current!.getBoundingClientRect();
     return { x: Math.round(((e.clientX - r.left) / r.width) * W), y: Math.round(((e.clientY - r.top) / r.height) * H) };
+  };
+
+  const iaCount = plan.filter((s) => s.origin === 'ia').length;
+  const propose = async () => {
+    setBusy(true); setError('');
+    try {
+      const added = await proposePlan(scene, project.roles.map((r) => r.name));
+      updateScene(scene.id, { plan: [...(scene.plan ?? []), ...added] });
+    } catch (e) { setError((e as Error).message); }
+    setBusy(false);
   };
 
   const exportPng = () => {
@@ -84,7 +97,7 @@ export function PlanScene({ project, scene, updateScene }: {
   };
 
   const render = (s: Shape, ghost = false) => {
-    const o = { onPointerDown: (e: PointerEvent) => hit(e, s), opacity: ghost ? 0.5 : 1, className: tool === 'select' ? 'cursor-move' : tool === 'erase' ? 'cursor-pointer' : '' };
+    const o = { onPointerDown: (e: PointerEvent) => hit(e, s), opacity: ghost ? 0.5 : s.origin === 'ia' ? 0.6 : 1, className: tool === 'select' ? 'cursor-move' : tool === 'erase' ? 'cursor-pointer' : '' };
     switch (s.kind) {
       case 'pen': return <polyline {...o} points={pts2(s.pts)} fill="none" stroke="#222831" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />;
       case 'move': {
@@ -135,11 +148,26 @@ export function PlanScene({ project, scene, updateScene }: {
             {tool === 'move' && cams.map((c) => <option key={c}>{c}</option>)}
           </select>
         )}
-        <Button variant="outline" size="sm" className="ml-auto" disabled={!plan.length} onClick={() => set(plan.slice(0, -1))}>Annuler le dernier</Button>
+        <Button variant="outline" size="sm" className="ml-auto" disabled={busy} onClick={() => void propose()}>{busy ? 'Esquisse en cours…' : 'Proposer un plan (IA)'}</Button>
+        <Button variant="outline" size="sm" disabled={!plan.length} onClick={() => set(plan.slice(0, -1))}>Annuler le dernier</Button>
         <Button variant="outline" size="sm" disabled={!plan.length} onClick={exportPng}>Exporter en PNG</Button>
         <Button variant="outline" size="sm" disabled={!plan.length} onClick={() => window.confirm('Effacer tout le plan ?') && set([])}>Tout effacer</Button>
       </div>
-      <p className="text-xs text-neutral-500">
+      <div role="status" aria-live="polite" className="space-y-2 empty:hidden">
+        {error && (
+          <p className="flex flex-wrap items-center gap-3 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
+            <span>{error}</span><button onClick={() => void propose()} className="font-semibold underline underline-offset-2">Réessayer</button>
+          </p>
+        )}
+        {iaCount > 0 && (
+          <p className="flex flex-wrap items-center gap-3 text-sm">
+            <span>{iaCount} élément{iaCount > 1 ? 's' : ''} esquissé{iaCount > 1 ? 's' : ''} par l'IA (transparents, à corriger).</span>
+            <button onClick={() => set(plan.map(({ origin, ...s }) => s as Shape))} className="px-1 py-1.5 font-semibold underline underline-offset-2 pointer-coarse:min-h-11">Tout garder</button>
+            <button onClick={() => set(plan.filter((s) => s.origin !== 'ia'))} className="px-1 py-1.5 font-semibold text-red-800 underline underline-offset-2 pointer-coarse:min-h-11">Tout retirer</button>
+          </p>
+        )}
+      </div>
+      <p className="text-xs text-neutral-600">
         {tool === 'camera' ? 'Cliquez-glissez : le point est la caméra, la direction du glissé est son axe.'
           : tool === 'move' ? 'Tracez le trajet : il est rattaché au personnage ou à la caméra choisi, ou à celui posé près du départ.'
           : tool === 'select' ? 'Glissez un élément pour le déplacer.' : tool === 'erase' ? 'Cliquez un élément pour le supprimer.' : ' '}

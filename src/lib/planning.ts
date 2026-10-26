@@ -60,5 +60,19 @@ export function dayDate(p: Project, index: number): Date | null {
   return d;
 }
 
+/** Remplace les jours par ceux d'une proposition : les séquences listées sont affectées dans l'ordre donné, les autres restent non planifiées (à la fin). */
+export function applySchedule(p: Project, plan: { lieu: string; sequences: number[] }[]): Project {
+  const days: ShootDay[] = plan.map((d) => ({ id: newId('d'), lieu: d.lieu, notes: '' }));
+  const where = new Map<number, [number, number]>();
+  plan.forEach((d, i) => d.sequences.forEach((num, k) => where.set(num, [i, k])));
+  const scenes = p.scenes
+    .map((s) => ({ ...s, dayId: where.has(s.number) ? days[where.get(s.number)![0]].id : null }))
+    .sort((a, b) => {
+      const x = where.get(a.number), y = where.get(b.number);
+      return x && y ? x[0] - y[0] || x[1] - y[1] : x ? -1 : y ? 1 : 0;
+    });
+  return { ...p, days, scenes };
+}
+
 let n = 0;
 export const newId = (prefix: string) => `${prefix}${Date.now().toString(36)}${(n++).toString(36)}`;
