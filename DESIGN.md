@@ -135,7 +135,7 @@ Une palette d'ardoise et de papier, avec un seul jaune qui signale « vous êtes
 - **Title** (400 italique, 1.25rem, 1.4) : titre de la séquence courante et titres de vues.
 - **Body** (400, 0.875rem, 1.5) : champs, boutons, listes, messages. Largeur de ligne limitée par les colonnes de l'interface.
 - **Label** (500, 0.75rem) : libellés de champs, au-dessus de chaque champ, jamais en dessous de 12 px.
-- **Nav** (400, 0.75rem, 0.1em, majuscules) : onglets de l'en-tête uniquement.
+- **Nav** (400, 0.75rem, 0.1em, majuscules) : menu des sections uniquement.
 - **Script** (400, mono 0.75rem) : texte d'une séquence repliable.
 
 ### Named Rules
@@ -143,9 +143,9 @@ Une palette d'ardoise et de papier, avec un seul jaune qui signale « vous êtes
 
 ## Layout
 
-Un en-tête sombre sur une ligne (titre, onglets, exports), puis une zone de travail à deux colonnes sur grand écran : la liste des séquences (14 rem) à gauche, le contenu à droite. Les blocs se superposent dans une colonne unique avec un rythme de 12 à 16 px (`space-y-3` et `space-y-4`) ; les cartes de plans ont 12 px de remplissage, avec une grille de champs à six colonnes sur grand écran, quatre sur tablette, deux sur téléphone.
+Un panneau latéral sombre à gauche (15 rem, fixe) porte le titre, le menu des sections et les exports Excel en bas ; à sa droite, la zone de travail, où la liste des séquences (14 rem) s'ajoute à gauche du contenu dans les vues par séquence. Les blocs se superposent dans une colonne unique avec un rythme de 12 à 16 px (`space-y-3` et `space-y-4`) ; les cartes de plans ont 12 px de remplissage, avec une grille de champs à six colonnes sur grand écran, quatre sur tablette, deux sur téléphone.
 
-Sous 768 px, les onglets deviennent une liste déroulante, les exports un menu « Exporter (Excel) », la liste des séquences une barre défilante horizontale. Sur écran tactile, boutons, champs et listes montent à 44 px de haut. Marge de page : 12 px sur téléphone, 20 px au-delà.
+Sous 768 px, le panneau latéral devient un bandeau sombre en haut : les sections passent dans une liste déroulante, les exports dans un menu « Exporter (Excel) », et la liste des séquences devient une barre défilante horizontale. Sur écran tactile, boutons, champs et listes montent à 44 px de haut. Marge de page : 12 px sur téléphone, 20 px au-delà.
 
 ## Elevation & Depth
 
@@ -173,7 +173,7 @@ Angles de 4 px partout (boutons, champs, cartes, pastilles) : une forme de papie
 - **Error / Disabled:** les erreurs d'IA s'affichent dans un bandeau rouge sur fond d'alerte avec « Réessayer » ; les contrôles inactifs perdent de l'opacité sans changer de forme.
 
 ### Navigation
-- **Onglets d'en-tête:** majuscules 12 px espacées ; l'onglet actif prend le jaune de l'atelier avec texte ardoise, avec `aria-current`. Sur téléphone : liste déroulante.
+- **Menu latéral:** liste verticale dans le panneau sombre de gauche, majuscules 12 px espacées ; la section active prend le jaune de l'atelier avec texte ardoise, avec `aria-current`. Les exports Excel sont en bas du panneau. Sur téléphone : liste déroulante dans un bandeau.
 - **Liste des séquences:** boutons pleine largeur ; la séquence active est en jaune, semi-gras, avec `aria-current`.
 
 ### Plan Card (composant signature)
