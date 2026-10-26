@@ -1,8 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Barlow", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Libre Baskerville", serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   
@@ -19,9 +19,11 @@
     accent-color: #222831;
     caret-color: #222831;
   }
+  h1, h2, h3 { letter-spacing: -0.01em; text-wrap: balance; }
+  button, a, select, summary { transition: background-color .15s, color .15s, border-color .15s; }
   ::selection { background: #FFD369; color: #222831; }
   :focus-visible { outline: 2px solid #222831; outline-offset: 2px; }
-  header :focus-visible, aside :focus-visible, [data-dark] :focus-visible { outline-color: #FFD369; }
+  [data-dark] :focus-visible { outline-color: #FFD369; }
 }
 
 .markdown-body {
@@ -44,7 +46,7 @@
 
 @theme inline {
     --font-heading: var(--font-serif);
-    --font-sans: "Barlow", ui-sans-serif, system-ui, sans-serif;
+    --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
     --font-serif: "Libre Baskerville", serif;
     --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
     --color-sidebar-ring: var(--sidebar-ring);

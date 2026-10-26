@@ -19,17 +19,17 @@ typography:
     fontWeight: 400
     lineHeight: 1.4
   body:
-    fontFamily: "Barlow, ui-sans-serif, system-ui, sans-serif"
+    fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif"
     fontSize: "0.875rem"
     fontWeight: 400
     lineHeight: 1.5
   label:
-    fontFamily: "Barlow, ui-sans-serif, system-ui, sans-serif"
+    fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif"
     fontSize: "0.75rem"
     fontWeight: 500
     lineHeight: 1.33
   nav:
-    fontFamily: "Barlow, ui-sans-serif, system-ui, sans-serif"
+    fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif"
     fontSize: "0.75rem"
     fontWeight: 400
     letterSpacing: "0.1em"
@@ -86,7 +86,7 @@ components:
 
 **Creative North Star: "L'atelier àlaclé"**
 
-Caméra est un établi, pas une vitrine : un poste de travail d'atelier où l'on prépare un film. Le système prolonge la charte du site de l'association : une ardoise bleutée pour la structure et le texte, un jaune réservé au repère, des titres en serif italique qui donnent au carnet de réalisation son ton cinéphile, et un corps de texte en Barlow, la police de l'association. Rien n'y cherche l'attention : la lisibilité d'un plan, d'une rubrique ou d'une proposition de l'IA passe avant l'effet.
+Caméra est un établi, pas une vitrine : un poste de travail d'atelier où l'on prépare un film. Le système prolonge la charte du site de l'association : une ardoise bleutée pour la structure et le texte, un jaune réservé au repère, des titres en serif italique qui donnent au carnet de réalisation son ton cinéphile, et un corps de texte en Inter, comme dans Sigma. Rien n'y cherche l'attention : la lisibilité d'un plan, d'une rubrique ou d'une proposition de l'IA passe avant l'effet.
 
 Les surfaces sont plates, claires et bordées d'un filet fin. La densité est celle d'un outil qu'on garde ouvert une journée : champs étiquetés en permanence, cartes empilées, volets qu'on déplie à la demande. L'identité vit dans les détails (le jaune de sélection, l'italique des titres, la sélection de texte colorée), jamais dans la décoration.
 
@@ -95,7 +95,7 @@ Refus confirmés : l'allure froide d'un logiciel de production générique, le d
 **Key Characteristics:**
 - Fond d'atelier gris clair, surfaces blanches, filets fins ; aucune ombre au repos.
 - Jaune de l'atelier réservé à la sélection et au titre de marque.
-- Titres en serif italique, interface en Barlow, texte de scénario en mono.
+- Titres en serif italique, interface en Inter, texte de scénario en mono.
 - Boutons et champs aux angles de 4 px, focus ardoise de 2 px très visible.
 - Les propositions de l'IA se voient : marquées, jamais confondues avec une décision.
 
@@ -126,10 +126,10 @@ Une palette d'ardoise et de papier, avec un seul jaune qui signale « vous êtes
 ## Typography
 
 **Display Font:** Libre Baskerville italique (avec serif)
-**Body Font:** Barlow (avec ui-sans-serif, system-ui)
+**Body Font:** Inter (avec ui-sans-serif, system-ui)
 **Label/Mono Font:** JetBrains Mono, réservée au texte d'une séquence de scénario
 
-**Character:** le serif italique donne la voix éditoriale d'un carnet de réalisation ; Barlow, police de l'association, garde l'interface droite et lisible.
+**Character:** le serif italique donne la voix éditoriale d'un carnet de réalisation ; Inter, police de l'association, garde l'interface droite et lisible.
 
 ### Hierarchy
 - **Title** (400 italique, 1.25rem, 1.4) : titre de la séquence courante et titres de vues.
@@ -143,7 +143,7 @@ Une palette d'ardoise et de papier, avec un seul jaune qui signale « vous êtes
 
 ## Layout
 
-Un panneau latéral sombre à gauche (15 rem, fixe) porte le titre, le menu des sections et, en bas, les trois exports Excel (dépouillement, plan de travail, découpage technique) ; à sa droite, la zone de travail, où la liste des séquences (14 rem) s'ajoute à gauche du contenu dans les vues par séquence. Les blocs se superposent dans une colonne unique avec un rythme de 12 à 16 px (`space-y-3` et `space-y-4`) ; les cartes de plans ont 12 px de remplissage : une vignette à gauche, puis une grille de cinq champs (trois sur tablette, deux sur téléphone) et, dessous, Description et Notes côte à côte. Dans le Découpage, l'en-tête se limite au titre de la séquence, à deux volets fermés (texte, assistance à la mise en scène) et à la barre des plans (« + Ajouter un plan » et le menu « Autres façons de créer »).
+Un panneau latéral clair à gauche (13 rem, fixe), repris de Sigma, porte le titre, le menu des sections et, en bas, les trois exports Excel (dépouillement, plan de travail, découpage technique) ; à sa droite, la zone de travail, où la liste des séquences (14 rem) s'ajoute à gauche du contenu dans les vues par séquence. Les blocs se superposent dans une colonne unique avec un rythme de 12 à 16 px (`space-y-3` et `space-y-4`) ; les cartes de plans ont 12 px de remplissage : une vignette à gauche, puis une grille de cinq champs (trois sur tablette, deux sur téléphone) et, dessous, Description et Notes côte à côte. Dans le Découpage, l'en-tête se limite au titre de la séquence, à deux volets fermés (texte, assistance à la mise en scène) et à la barre des plans (« + Ajouter un plan » et le menu « Autres façons de créer »).
 
 Sous 768 px, le panneau latéral devient un bandeau sombre en haut : les sections passent dans une liste déroulante, les exports dans un menu « Exporter (Excel) », et la liste des séquences devient une barre défilante horizontale. Sur écran tactile, boutons, champs et listes montent à 44 px de haut. Marge de page : 12 px sur téléphone, 20 px au-delà.
 
@@ -173,7 +173,7 @@ Angles de 4 px partout (boutons, champs, cartes, pastilles) : une forme de papie
 - **Error / Disabled:** les erreurs d'IA s'affichent dans un bandeau rouge sur fond d'alerte avec « Réessayer » ; les contrôles inactifs perdent de l'opacité sans changer de forme.
 
 ### Navigation
-- **Menu latéral:** liste verticale dans le panneau sombre de gauche, majuscules 12 px espacées ; la section active prend le jaune de l'atelier avec texte ardoise, avec `aria-current`. Les exports Excel sont en bas du panneau. Sur téléphone : liste déroulante dans un bandeau.
+- **Menu latéral:** liste verticale dans le panneau clair de gauche, majuscules 12 px espacées ; la section active prend le jaune de l'atelier avec texte ardoise, avec `aria-current` ; chaque entrée a un numéro et une icône. Les exports Excel sont en bas du panneau. Sur téléphone : liste déroulante dans un bandeau.
 - **Liste des séquences:** boutons pleine largeur ; la séquence active est en jaune, semi-gras, avec `aria-current`.
 
 ### Plan Card (composant signature)

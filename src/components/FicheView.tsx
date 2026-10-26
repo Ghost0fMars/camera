@@ -5,6 +5,7 @@ import { analyseScene, applyAnalysis } from '../lib/ai';
 import { CATEGORIES, type Project, type Scene } from '../types';
 
 const L = ({ children }: { children: string }) => <span className="mb-1 block text-xs font-bold uppercase tracking-widest text-neutral-500">{children}</span>;
+const card = 'block rounded-lg border border-neutral-300 bg-[#EEEEEE] p-4 shadow-md';
 const lines = (v: string) => v.split('\n').map((x) => x.trim()).filter(Boolean);
 
 export function FicheView({ project, sceneId, onSelect, updateScene }: {
@@ -39,12 +40,12 @@ export function FicheView({ project, sceneId, onSelect, updateScene }: {
           <Button variant="outline" size="sm" className="ml-auto" disabled={busy} onClick={analyse}>{busy ? 'Analyse…' : 'Dépouiller avec l\'IA'}</Button>
         </div>
         {msg && <p className="text-sm text-neutral-600">{msg}</p>}
-        <label className="block"><L>Résumé</L><Textarea className="bg-white" value={scene.summary} onChange={(e) => updateScene(scene.id, { summary: e.target.value })} /></label>
-        <label className="block"><L>Continuité / raccord</L><Textarea className="bg-white" value={scene.continuity} onChange={(e) => updateScene(scene.id, { continuity: e.target.value })} /></label>
-        <div><L>Rôles</L><p className="text-sm">{scene.roles.join(', ') || '—'}</p></div>
+        <label className={card}><L>Résumé</L><Textarea className="bg-white" value={scene.summary} onChange={(e) => updateScene(scene.id, { summary: e.target.value })} /></label>
+        <label className={card}><L>Continuité / raccord</L><Textarea className="bg-white" value={scene.continuity} onChange={(e) => updateScene(scene.id, { continuity: e.target.value })} /></label>
+        <div className={card}><L>Rôles</L><p className="text-sm">{scene.roles.join(', ') || '—'}</p></div>
         <div className="grid gap-4 md:grid-cols-2">
           {CATEGORIES.map((c) => (
-            <label key={c.key} className="block"><L>{c.label}</L>
+            <label key={c.key} className={card}><L>{c.label}</L>
               <Textarea className="min-h-20 bg-white text-sm" placeholder="Un élément par ligne"
                 value={scene.categories[c.key].join('\n')}
                 onChange={(e) => updateScene(scene.id, { categories: { ...scene.categories, [c.key]: e.target.value.split('\n') } })}
@@ -52,8 +53,8 @@ export function FicheView({ project, sceneId, onSelect, updateScene }: {
             </label>
           ))}
         </div>
-        <label className="block"><L>Notes</L><Textarea className="bg-white" value={scene.notes} onChange={(e) => updateScene(scene.id, { notes: e.target.value })} /></label>
-        <details className="text-sm"><summary className="cursor-pointer text-neutral-600">Texte de la séquence</summary><pre className="mt-2 whitespace-pre-wrap rounded bg-white p-3 font-mono text-xs">{scene.text}</pre></details>
+        <label className={card}><L>Notes</L><Textarea className="bg-white" value={scene.notes} onChange={(e) => updateScene(scene.id, { notes: e.target.value })} /></label>
+        <details className={`${card} text-sm`}><summary className="cursor-pointer text-neutral-600">Texte de la séquence</summary><pre className="mt-2 whitespace-pre-wrap rounded bg-white p-3 font-mono text-xs">{scene.text}</pre></details>
       </div>
     </div>
   );
