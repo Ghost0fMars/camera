@@ -175,7 +175,7 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
           </div>
         </details>
 
-        <details className="rounded border border-neutral-300 bg-white p-3 text-sm">
+        <details className={`${card} text-sm`}>
           <summary className="cursor-pointer font-semibold">Images des plans <span className="font-normal text-neutral-600">· fal.ai, avec votre clé{falKey.trim() ? ' · clé saisie' : ''}</span></summary>
           <div className="mt-2 space-y-3">
             <label className="block"><span className={label}>Votre clé fal.ai</span>
@@ -332,7 +332,7 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
                           <label className="block"><span className={label}>Prompt</span>
                             <textarea className={`${field} field-sizing-content min-h-24 resize-none`} value={h.prompt} onChange={(e) => edit(h.id, { prompt: e.target.value })} /></label>
                         )}
-                          <div className="space-y-2 border-t border-neutral-200 pt-3">
+                          <div className="space-y-2 border-t border-neutral-300 pt-3">
                             <div className="flex flex-wrap items-center gap-3">
                               <Button variant="outline" size="sm" disabled={anyBusy || !falKey.trim() || !h.description.trim()} onClick={() => makeImage(h)}>
                                 {h.image ? 'Régénérer l\'image' : 'Générer l\'image'} · ≈ {fmtUsd(falModel(imgModel).usdPerImage)}
