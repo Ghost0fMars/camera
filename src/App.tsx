@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Camera as CameraIcon, CalendarDays, ClipboardList, Clapperboard, Download, FileText, LayoutGrid, ListOrdered, Users } from 'lucide-react';
+import { Camera as CameraIcon, CalendarDays, ClipboardList, Clapperboard, Download, FileText, FolderOpen, LayoutGrid, ListOrdered, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { exportDecoupage, exportDepouillement, exportPlanTravail } from './lib/exportXlsx';
 import { useProject } from './lib/useProject';
@@ -9,6 +9,7 @@ import { FicheView } from './components/FicheView';
 import { ImportView } from './components/ImportView';
 import { PlanView } from './components/PlanView';
 import { ProductionView } from './components/ProductionView';
+import { ProjectsView } from './components/ProjectsView';
 import { SequencierView } from './components/SequencierView';
 
 const TABS = [
@@ -20,10 +21,11 @@ const TABS = [
   { id: 'dessus', label: 'Vue du dessus', icon: LayoutGrid },
   { id: 'decoupage', label: 'Découpage technique', icon: Clapperboard },
 ] as const;
-type Tab = (typeof TABS)[number]['id'];
+const PROJECTS = { id: 'projets', label: 'Mes projets', icon: FolderOpen } as const;
+type Tab = (typeof TABS)[number]['id'] | typeof PROJECTS.id;
 
 export default function App() {
-  const { project, update, updateScene } = useProject();
+  const { project, update, updateScene, projects, activeId, add, open, remove, restore } = useProject();
   const [tab, setTab] = useState<Tab>('import');
   const [sceneId, setSceneId] = useState<string | null>(null);
   const [error, setError] = useState('');
@@ -54,6 +56,11 @@ export default function App() {
           </div>
         </div>
         <nav aria-label="Sections" className="flex flex-1 flex-col gap-0.5 py-2">
+          <button onClick={() => setTab(PROJECTS.id)} aria-current={tab === PROJECTS.id ? 'page' : undefined}
+            className={`flex items-center gap-2.5 px-4 py-2.5 text-left text-sm font-medium transition-colors ${tab === PROJECTS.id ? 'bg-[#FFD369] text-[#222831]' : 'text-[#222831]/55 hover:bg-[#EEEEEE] hover:text-[#222831]'}`}>
+            <FolderOpen size={15} />{PROJECTS.label}
+          </button>
+          <div className="mx-4 my-1 border-t border-neutral-300" aria-hidden />
           {TABS.map((t, i) => {
             const Icon = t.icon;
             return (
@@ -76,7 +83,7 @@ export default function App() {
         </div>
         <select aria-label="Section" value={tab} onChange={(e) => setTab(e.target.value as Tab)}
           className="ml-auto rounded border border-[#393E46] bg-white px-2 py-2 text-sm">
-          {TABS.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+          {[PROJECTS, ...TABS].map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
         </select>
         <details className="relative w-full">
           <summary className="cursor-pointer rounded border border-[#393E46] px-3 py-2 text-sm">Exporter (Excel)</summary>
@@ -85,6 +92,12 @@ export default function App() {
       </header>
       <main className="mx-auto w-full min-w-0 max-w-7xl p-3 sm:p-6">
         {error && <p className="mb-3 text-sm text-red-700">{error}</p>}
+        {tab === 'projets' && (
+          <ProjectsView projects={projects} activeId={activeId} onRemove={remove} onRestore={restore}
+            onCreate={() => { add(); setSceneId(null); setTab('import'); }}
+            onOpen={(id) => { open(id); setSceneId(null); setTab(projects.find((e) => e.id === id)?.project.scenes.length ? 'sequencier' : 'import'); }}
+            onImport={(p) => add(p, false)} />
+        )}
         {tab === 'import' && <ImportView project={project} update={update} onDone={() => setTab('sequencier')} />}
         {tab === 'production' && <ProductionView project={project} update={update} />}
         {tab === 'sequencier' && <SequencierView project={project} updateScene={updateScene} onOpen={(id) => { setSceneId(id); setTab('fiche'); }} />}
