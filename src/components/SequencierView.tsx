@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { analyseScene, applyAnalysis } from '../lib/ai';
 import { fmtDur, parseDur } from '../lib/planning';
 import type { IE, Project, Scene } from '../types';
+import { card } from './card';
 
 const cell = 'w-full rounded border border-transparent bg-transparent px-1.5 py-1 text-sm hover:border-neutral-300 focus:border-neutral-500 focus:bg-white focus:outline-none';
 
@@ -31,8 +32,8 @@ export function SequencierView({ project, updateScene, onOpen }: {
         <span className="text-xs text-neutral-500">{progress}</span>
         <span className="ml-auto text-sm">Total estimé : <b>{fmtDur(total)}</b></span>
       </div>
-      <div className="overflow-x-auto rounded border border-neutral-300 bg-white">
-        <table className="w-full min-w-[900px] text-left">
+      <div className={`${card} overflow-x-auto p-2`}>
+        <table className="w-full min-w-[900px] rounded bg-white text-left">
           <thead className="border-b border-neutral-300 bg-neutral-50 text-xs uppercase tracking-widest text-neutral-600">
             <tr>{['N°', 'Décor', 'I/E', 'Effet', 'Rôles', 'Durée', 'Tournage (min)', 'Jour', ''].map((h) => <th key={h} className="px-2 py-2 font-medium">{h}</th>)}</tr>
           </thead>

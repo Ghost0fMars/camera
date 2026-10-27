@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { docxToText, parseScript } from '../lib/screenplay';
 import type { Project } from '../types';
+import { card } from './card';
 
 export function ImportView({ project, update, onDone }: {
   project: Project; update: (p: (p: Project) => Project) => void; onDone: () => void;
@@ -32,7 +33,7 @@ export function ImportView({ project, update, onDone }: {
   };
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4">
+    <div className={`${card} mx-auto max-w-3xl space-y-4`}>
       <p className="text-sm text-neutral-600">
         Collez votre scénario ou ouvrez un fichier (.docx, .md, .txt, .fountain). Chaque intitulé « INT. / EXT. … » devient une séquence.
       </p>

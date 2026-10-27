@@ -2,10 +2,9 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { analyseScene, applyAnalysis } from '../lib/ai';
+import { card, L } from './card';
 import { CATEGORIES, type Project, type Scene } from '../types';
 
-const L = ({ children }: { children: string }) => <span className="mb-1 block text-xs font-bold uppercase tracking-widest text-neutral-500">{children}</span>;
-const card = 'block rounded-lg border border-neutral-300 bg-[#EEEEEE] p-4 shadow-md';
 const lines = (v: string) => v.split('\n').map((x) => x.trim()).filter(Boolean);
 
 export function FicheView({ project, sceneId, onSelect, updateScene }: {

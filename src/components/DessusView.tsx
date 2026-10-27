@@ -1,4 +1,5 @@
 import type { Project, Scene } from '../types';
+import { card } from './card';
 import { PlanScene } from './PlanScene';
 
 export function DessusView({ project, sceneId, onSelect, updateScene }: {
@@ -20,8 +21,8 @@ export function DessusView({ project, sceneId, onSelect, updateScene }: {
       </nav>
       <div className="space-y-3">
         <h2 className="font-serif text-xl italic">Séquence {scene.number} · {scene.decor} · {scene.ie} · {scene.effect}</h2>
-        <details className="text-sm"><summary className="cursor-pointer text-neutral-600">Texte de la séquence</summary><pre className="mt-2 max-h-48 overflow-y-auto whitespace-pre-wrap rounded bg-white p-3 font-mono text-xs">{scene.text}</pre></details>
-        <PlanScene key={scene.id} project={project} scene={scene} updateScene={updateScene} />
+        <details className={`${card} text-sm`}><summary className="cursor-pointer text-neutral-600">Texte de la séquence</summary><pre className="mt-2 max-h-48 overflow-y-auto whitespace-pre-wrap rounded bg-white p-3 font-mono text-xs">{scene.text}</pre></details>
+        <div className={card}><PlanScene key={scene.id} project={project} scene={scene} updateScene={updateScene} /></div>
       </div>
     </div>
   );

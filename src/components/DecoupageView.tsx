@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChevronDown, ChevronRight, ChevronUp, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { card } from './card';
 import { FrameAnalysis } from './FrameAnalysis';
 import { ShotGlyph } from './ShotGlyph';
 import { adviseScene, analyseShot, proposeShots, shotPrompt } from '../lib/ai';
@@ -161,9 +162,9 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
       <div className="min-w-0 space-y-4">
         <h2 className="font-serif text-xl italic">Séquence {scene.number} · {scene.decor} · {scene.ie} · {scene.effect}</h2>
 
-        <details className="text-sm"><summary className="cursor-pointer py-1 text-neutral-700">Texte de la séquence</summary><pre className="mt-2 max-h-48 overflow-y-auto whitespace-pre-wrap rounded border border-neutral-300 bg-white p-3 font-mono text-xs">{scene.text}</pre></details>
+        <details className={`${card} text-sm`}><summary className="cursor-pointer text-neutral-700">Texte de la séquence</summary><pre className="mt-2 max-h-48 overflow-y-auto whitespace-pre-wrap rounded border border-neutral-300 bg-white p-3 font-mono text-xs">{scene.text}</pre></details>
 
-        <details key={scene.id} open={!!scene.advice} className="rounded border border-neutral-300 bg-white p-3 text-sm">
+        <details key={scene.id} open={!!scene.advice} className={`${card} text-sm`}>
           <summary className="cursor-pointer font-semibold">Assistance à la mise en scène <span className="font-normal text-neutral-600">· Eisenstein et intégrale dramatique</span></summary>
           <div className="mt-2 space-y-2">
             <Button variant="outline" size="sm" disabled={anyBusy} onClick={advise}>{scene.advice ? 'Régénérer les conseils' : 'Conseils de mise en scène (IA)'}</Button>
@@ -250,7 +251,7 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
           )}
 
           {shots.length === 0 ? (
-            <div className="rounded border border-dashed border-neutral-400 bg-white px-4 py-6 text-sm text-neutral-700">
+            <div className="rounded-lg border border-dashed border-neutral-400 bg-[#EEEEEE] px-4 py-6 text-sm text-neutral-700">
               Aucun plan pour cette séquence. Ajoutez-en un, demandez une proposition à l'IA, ou créez-les depuis les caméras de la vue du dessus.
             </div>
           ) : (
@@ -259,7 +260,7 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
                 const n = shotNumber(scene, i);
                 const items = shotItems(h);
                 return (
-                  <li key={h.id} className="rounded border border-neutral-300 bg-white">
+                  <li key={h.id} className="overflow-hidden rounded-lg border border-neutral-300 bg-[#EEEEEE] shadow-md">
                     <div className="flex flex-wrap items-center gap-2 px-3 pt-2">
                       <span className="text-sm font-semibold">Plan {n}</span>
                       {h.origin === 'ia' ? (
@@ -302,7 +303,7 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap gap-2 border-t border-neutral-200 px-3 py-2">
+                    <div className="flex flex-wrap gap-2 border-t border-neutral-300 px-3 py-2">
                       <button aria-expanded={frameOpen === h.id} aria-controls={`cadre-${h.id}`} onClick={() => setFrameOpen(frameOpen === h.id ? null : h.id)}
                         className="inline-flex min-h-9 items-center gap-1 rounded border border-neutral-400 px-2.5 text-sm hover:bg-neutral-100 pointer-coarse:min-h-11">
                         {frameOpen === h.id ? <ChevronDown className="size-4" aria-hidden /> : <ChevronRight className="size-4" aria-hidden />}
@@ -321,7 +322,7 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
                     </div>
 
                     {promptOpen === h.id && (
-                      <div id={`prompt-${h.id}`} className="space-y-2 border-t border-neutral-200 bg-neutral-50 px-3 py-3">
+                      <div id={`prompt-${h.id}`} className="space-y-2 border-t border-neutral-300 bg-white/60 px-3 py-3">
                         <div className="flex flex-wrap items-center gap-3">
                           <Button variant="outline" size="sm" disabled={anyBusy || !h.description.trim()} onClick={() => writePrompt(h)}>{h.prompt ? 'Régénérer le prompt' : 'Rédiger le prompt (IA)'}</Button>
                           {h.prompt && <Button variant="outline" size="sm" onClick={() => void copy(h)}>{copied === h.id ? 'Copié' : 'Copier'}</Button>}
@@ -352,9 +353,9 @@ export function DecoupageView({ project, sceneId, onSelect, updateScene }: {
                       </div>
                     )}
 
-                    {frameOpen === h.id &&<div id={`cadre-${h.id}`} className="border-t border-neutral-200 bg-neutral-50 px-3 py-3"><FrameAnalysis shot={h} edit={(patch) => edit(h.id, patch)} /></div>}
+                    {frameOpen === h.id &&<div id={`cadre-${h.id}`} className="border-t border-neutral-300 bg-white/60 px-3 py-3"><FrameAnalysis shot={h} edit={(patch) => edit(h.id, patch)} /></div>}
                     {open === h.id && (
-                      <div id={`dep-${h.id}`} className="border-t border-neutral-200 bg-neutral-50 px-3 py-3">
+                      <div id={`dep-${h.id}`} className="border-t border-neutral-300 bg-white/60 px-3 py-3">
                         <Breakdown shot={h} busy={busy === `dep:${h.id}`} disabled={anyBusy} onAi={() => analyse(h)} onChange={(categories) => edit(h.id, { categories })} />
                       </div>
                     )}

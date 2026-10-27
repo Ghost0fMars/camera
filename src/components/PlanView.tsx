@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { proposeSchedule, type Schedule } from '../lib/ai';
 import { applySchedule, dayDate, dayScenes, dayStats, fmtDur, fmtHours, newId } from '../lib/planning';
 import type { Project, Scene } from '../types';
+import { card, L } from './card';
 
 const box = 'w-full rounded border border-neutral-400 bg-white px-2 py-1.5 text-sm focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#222831]';
 
@@ -57,7 +58,7 @@ export function PlanView({ project, update, updateScene }: {
         <Button variant="outline" size="sm" onClick={addDay}>Ajouter un jour</Button>
         <span className="text-xs text-neutral-500">Affectez les séquences aux jours ici ou dans le séquencier.</span>
       </div>
-      <details className="rounded border border-neutral-300 bg-white p-3 text-sm" open={!!proposal || !!error}>
+      <details className={`${card} text-sm`} open={!!proposal || !!error}>
         <summary className="cursor-pointer font-semibold">Assistance au plan de travail <span className="font-normal text-neutral-600">· jours de tournage et répartition des séquences</span></summary>
         <div className="mt-2 space-y-2">
           <label className="block"><span className="mb-1 block text-xs font-medium text-neutral-700">Contraintes (facultatif)</span>
@@ -85,14 +86,14 @@ export function PlanView({ project, update, updateScene }: {
         )}
       </div>
       {proposal && (
-        <section aria-label="Proposition de calendrier" className="space-y-3 rounded border border-neutral-700 bg-white p-3">
+        <section aria-label="Proposition de calendrier" className={`${card} space-y-3`}>
           <h3 className="text-base font-semibold">Proposition de l'IA : {proposal.days.length} jour{proposal.days.length > 1 ? 's' : ''} de tournage</h3>
           {proposal.resume && <p className="text-sm text-neutral-800">{proposal.resume}</p>}
           <ol className="space-y-2">
             {proposal.days.map((d, i) => {
               const sc = d.sequences.flatMap((n) => byNumber.get(n) ?? []);
               return (
-                <li key={i} className="rounded border border-neutral-300 px-3 py-2 text-sm">
+                <li key={i} className="rounded border border-neutral-300 bg-white px-3 py-2 text-sm">
                   <p className="font-semibold">Jour {i + 1}{d.lieu ? ` · ${d.lieu}` : ''} <span className="font-normal text-neutral-600">· séq. {d.sequences.join(', ')} · {fmtHours(sc.reduce((a, s) => a + s.shootMin, 0))} h de tournage · {fmtDur(sc.reduce((a, s) => a + s.durationSec, 0))} à l'écran</span></p>
                   {d.motif && <p className="text-neutral-700">{d.motif}</p>}
                 </li>
@@ -111,11 +112,11 @@ export function PlanView({ project, update, updateScene }: {
         </section>
       )}
       {unassigned.length > 0 && (
-        <div className="rounded border border-dashed border-neutral-400 bg-white p-3">
-          <h3 className="mb-2 text-xs font-bold uppercase tracking-widest text-neutral-500">Non planifiées ({unassigned.length})</h3>
+        <div className={card}>
+          <L>{`Non planifiées (${unassigned.length})`}</L>
           <div className="flex flex-wrap gap-2">
             {unassigned.map((s) => (
-              <span key={s.id} className="flex items-center gap-1 rounded bg-neutral-100 px-2 py-1 text-sm">
+              <span key={s.id} className="flex items-center gap-1 rounded bg-white px-2 py-1 text-sm">
                 {s.number} · {s.decor}
                 <select className="ml-1 rounded border border-neutral-300 text-xs" value="" onChange={(e) => e.target.value && updateScene(s.id, { dayId: e.target.value })}>
                   <option value="">Jour…</option>
@@ -131,13 +132,13 @@ export function PlanView({ project, update, updateScene }: {
           const st = dayStats(project, d);
           const date = dayDate(project, i);
           return (
-            <section key={d.id} className="space-y-2 rounded border border-neutral-300 bg-white p-3">
+            <section key={d.id} className={`${card} space-y-2`}>
               <div className="flex items-baseline gap-2">
                 <h3 className="text-lg font-bold">JOUR {i + 1}</h3>
                 <span className="text-xs text-neutral-500">{date ? date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) : 'date à fixer'}</span>
                 <button className="ml-auto text-xs text-red-700 underline" onClick={() => removeDay(d.id)}>Supprimer</button>
               </div>
-              <Input placeholder={st.lieu || 'Lieu de tournage'} value={d.lieu} onChange={(e) => setDay(d.id, { lieu: e.target.value })} className="h-8 text-sm" />
+              <Input placeholder={st.lieu || 'Lieu de tournage'} value={d.lieu} onChange={(e) => setDay(d.id, { lieu: e.target.value })} className="h-8 bg-white text-sm" />
               <ul className="space-y-1">
                 {dayScenes(project, d).map((s) => (
                   <li key={s.id} className="flex items-center gap-1 text-sm">
@@ -155,7 +156,7 @@ export function PlanView({ project, update, updateScene }: {
                 <dt className="font-bold uppercase text-neutral-500">Tournage</dt><dd>{fmtHours(st.shootMin)} h</dd>
                 <dt className="font-bold uppercase text-neutral-500">Comédiens</dt><dd>{st.actors.join(', ') || '—'}</dd>
               </dl>
-              <Textarea placeholder="Notes du jour" value={d.notes} onChange={(e) => setDay(d.id, { notes: e.target.value })} className="min-h-14 text-sm" />
+              <Textarea placeholder="Notes du jour" value={d.notes} onChange={(e) => setDay(d.id, { notes: e.target.value })} className="min-h-14 bg-white text-sm" />
             </section>
           );
         })}
