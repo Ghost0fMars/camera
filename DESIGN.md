@@ -1,6 +1,6 @@
 ---
 name: Caméra
-description: Application de préparation de tournage de l'association àlaclé : sobre, plate, ardoise et jaune de l'atelier.
+description: Application de préparation de tournage de l'association àlaclé : sobre, claire, en cartes grises posées sur du blanc, ardoise et jaune de l'atelier.
 colors:
   ardoise-alacle: "#222831"
   ardoise-douce: "#393E46"
@@ -40,6 +40,7 @@ typography:
     lineHeight: 1.5
 rounded:
   sm: "4px"
+  lg: "8px"
 spacing:
   sm: "8px"
   md: "12px"
@@ -64,9 +65,13 @@ components:
     textColor: "{colors.ardoise-alacle}"
     rounded: "{rounded.sm}"
     padding: "6px 8px"
+  card:
+    backgroundColor: "{colors.fond-atelier}"
+    rounded: "{rounded.lg}"
+    padding: "16px"
   plan-card:
     backgroundColor: "{colors.papier}"
-    rounded: "{rounded.sm}"
+    rounded: "{rounded.lg}"
     padding: "12px"
   nav-tab-active:
     backgroundColor: "{colors.jaune-atelier}"
@@ -88,15 +93,15 @@ components:
 
 Caméra est un établi, pas une vitrine : un poste de travail d'atelier où l'on prépare un film. Le système prolonge la charte du site de l'association : une ardoise bleutée pour la structure et le texte, un jaune réservé au repère, des titres en serif italique qui donnent au carnet de réalisation son ton cinéphile, et un corps de texte en Inter, comme dans Sigma. Rien n'y cherche l'attention : la lisibilité d'un plan, d'une rubrique ou d'une proposition de l'IA passe avant l'effet.
 
-Les surfaces sont plates, claires et bordées d'un filet fin. La densité est celle d'un outil qu'on garde ouvert une journée : champs étiquetés en permanence, cartes empilées, volets qu'on déplie à la demande. L'identité vit dans les détails (le jaune de sélection, l'italique des titres, la sélection de texte colorée), jamais dans la décoration.
+Les panneaux sont des cartes grises (fond d'atelier, filet, angles de 8 px, ombre légère) posées sur la page blanche, comme dans le Dépouillement ; les champs et les plans sont blancs. La densité est celle d'un outil qu'on garde ouvert une journée : champs étiquetés en permanence, cartes empilées, volets qu'on déplie à la demande. L'identité vit dans les détails (le jaune de sélection, l'italique des titres, la sélection de texte colorée), jamais dans la décoration.
 
 Refus confirmés : l'allure froide d'un logiciel de production générique, le décor tape-à-l'œil (dégradés, verre, ombres marquées, animations décoratives) et le gadget d'IA brillant (étoiles, éclats, ton magique autour des boutons d'assistance).
 
 **Key Characteristics:**
-- Fond d'atelier gris clair, surfaces blanches, filets fins ; aucune ombre au repos.
+- Page blanche ; panneaux en cartes grises (fond d'atelier, filet, ombre légère) ; champs et plans en blanc. Les cartes ne s'imbriquent jamais.
 - Jaune de l'atelier réservé à la sélection et au titre de marque.
 - Titres en serif italique, interface en Inter, texte de scénario en mono.
-- Boutons et champs aux angles de 4 px, focus ardoise de 2 px très visible.
+- Boutons et champs aux angles de 4 px, cartes et plans de 8 px, focus ardoise de 2 px très visible.
 - Les propositions de l'IA se voient : marquées, jamais confondues avec une décision.
 
 ## Colors
@@ -109,8 +114,8 @@ Une palette d'ardoise et de papier, avec un seul jaune qui signale « vous êtes
 ### Neutral
 - **Ardoise àlaclé** (#222831) : en-tête, texte courant, bouton principal (« + Ajouter un plan »), bandeau d'annulation, anneau de focus.
 - **Ardoise douce** (#393E46) : survol du bouton principal, bordure des boutons secondaires.
-- **Fond d'atelier** (#EEEEEE) : fond de page et survol des éléments neutres.
-- **Papier** (#FFFFFF) : cartes de plans, champs, panneaux.
+- **Fond d'atelier** (#EEEEEE) : fond des cartes de panneaux (`card`) et survol des éléments neutres.
+- **Papier** (#FFFFFF) : fond de page, plans, champs, tableaux.
 - **Filet** (#A3A3A3) : bordure des champs et des boutons de volet, pour qu'ils restent visibles.
 - **Filet doux** (#D4D4D4) : séparations entre blocs (cartes, volets).
 - **Texte secondaire** (#525252) : aides, légendes, libellés complémentaires (contraste ≥ 4,5:1 sur blanc).
@@ -143,20 +148,20 @@ Une palette d'ardoise et de papier, avec un seul jaune qui signale « vous êtes
 
 ## Layout
 
-Un panneau latéral clair à gauche (13 rem, fixe), repris de Sigma, porte le titre, le menu des sections et, en bas, les trois exports Excel (dépouillement, plan de travail, découpage technique) ; à sa droite, la zone de travail, où la liste des séquences (14 rem) s'ajoute à gauche du contenu dans les vues par séquence. Les blocs se superposent dans une colonne unique avec un rythme de 12 à 16 px (`space-y-3` et `space-y-4`) ; les cartes de plans ont 12 px de remplissage : une vignette à gauche, puis une grille de cinq champs (trois sur tablette, deux sur téléphone) et, dessous, Description et Notes côte à côte. Dans le Découpage, l'en-tête se limite au titre de la séquence, à deux volets fermés (texte, assistance à la mise en scène) et à la barre des plans (« + Ajouter un plan » et le menu « Autres façons de créer »).
+Un panneau latéral clair à gauche (13 rem, fixe), repris de Sigma, porte le titre, le menu des sections et, en bas, les trois exports Excel (dépouillement, plan de travail, découpage technique) ; à sa droite, la zone de travail, où la liste des séquences (14 rem) s'ajoute à gauche du contenu dans les vues par séquence. Les blocs se superposent dans une colonne unique avec un rythme de 12 à 16 px (`space-y-3` et `space-y-4`) ; les cartes de plans ont 12 px de remplissage : une vignette à gauche, puis une grille de cinq champs (trois sur tablette, deux sur téléphone) et, dessous, Description et Notes côte à côte. Dans le Découpage, l'en-tête se limite au titre de la séquence, à une seule carte repliée « Outils de la séquence » (texte, assistance à la mise en scène) et à la barre des plans (« + Ajouter un plan » et le menu « Plus d'actions » : proposer un découpage, un plan par caméra, images de la séquence ou du film). La clé fal.ai, le modèle et la dépense cumulée se règlent une fois pour le projet, dans la carte « Images des plans » de la page Production.
 
 Sous 768 px, le panneau latéral devient un bandeau sombre en haut : les sections passent dans une liste déroulante, les exports dans un menu « Exporter (Excel) », et la liste des séquences devient une barre défilante horizontale. Sur écran tactile, boutons, champs et listes montent à 44 px de haut. Marge de page : 12 px sur téléphone, 20 px au-delà.
 
 ## Elevation & Depth
 
-Le système est plat : la profondeur vient du contraste fond d'atelier / papier et des filets fins, pas de l'ombre. Aucune ombre n'existe aujourd'hui dans l'interface. La règle confirmée pour les ajouts : une ombre douce n'apparaît qu'en réponse à une action (survol, menu ouvert), jamais au repos.
+Une profondeur légère, commune à toutes les pages : les cartes de panneaux ont une ombre douce et décalée (`shadow-md`), les plans blancs une ombre plus discrète (`shadow-sm`) ; les menus ouverts gardent une ombre `shadow-md`. Pas d'ombre dure, pas de halo coloré, pas de dégradé.
 
 ### Named Rules
-**The Flat Until Touched Rule.** Une surface est plate au repos. Si une ombre est introduite, elle est diffuse, décalée, et ne répond qu'à une interaction.
+**The One Card Level Rule.** Une carte ne contient jamais une autre carte : à l'intérieur, on sépare par des filets de 1 px et des intitulés en capitales grises, avec des champs blancs. Le plan, objet central du Découpage, reste blanc pour dominer les cartes grises d'aide.
 
 ## Shapes
 
-Angles de 4 px partout (boutons, champs, cartes, pastilles) : une forme de papier découpé, ni carrée ni arrondie. Les séparateurs sont des filets de 1 px. Les pastilles de statut (« Proposé par l'IA ») sont des rectangles à filet, pas des gélules colorées.
+Angles de 4 px pour boutons, champs et pastilles, de 8 px pour les cartes et les plans : une forme de papier découpé, ni carrée ni bulle. Les séparateurs sont des filets de 1 px. Les pastilles de statut (« Proposé par l'IA ») sont des rectangles à filet, pas des gélules colorées.
 
 ## Components
 
@@ -177,7 +182,7 @@ Angles de 4 px partout (boutons, champs, cartes, pastilles) : une forme de papie
 - **Liste des séquences:** boutons pleine largeur ; la séquence active est en jaune, semi-gras, avec `aria-current`.
 
 ### Plan Card (composant signature)
-Une carte blanche à filet doux par plan : ligne d'en-tête (numéro, statut, flèches, suppression), vignette (l'image analysée si elle existe, sinon le cadrage de la valeur de plan en pictogramme plat à filet), grille de champs étiquetés (taille, mouvement, optique, caméra, durée), pied avec deux volets dépliables (analyse du cadre, dépouillement). Le statut est lisible : « À décrire » en texte secondaire, « Proposé par l'IA » en pastille à filet avec « Garder ».
+Une carte blanche à filet par plan : ligne d'en-tête (numéro, statut, flèches, suppression), vignette 16:9 unique (l'image générée si elle existe, agrandissable au clic ; sinon l'image analysée ; sinon le cadrage de la valeur de plan en pictogramme plat à filet), grille de champs étiquetés (taille, mouvement, optique, caméra, durée), pied avec trois volets dépliables dont un seul est ouvert à la fois (image et prompt, analyse du cadre, dépouillement). Dans « Image et prompt », le prompt est gratuit (bouton secondaire) ; la génération d'image est payante (bouton principal avec son coût), séparée par un filet. Le statut est lisible : « À décrire » en texte secondaire, « Proposé par l'IA » en pastille à filet avec « Garder ».
 
 ### Feedback Banners
 Bandeau d'annulation ardoise avec texte blanc et « Annuler » souligné (12 secondes, suspendues au survol et au focus) ; ligne d'état pendant une analyse de l'IA ; bandeau d'information blanc à filet ; bandeau d'erreur rouge sur fond d'alerte. Tous dans une région `role="status"` placée juste au-dessus de la liste concernée.
@@ -189,10 +194,10 @@ Bandeau d'annulation ardoise avec texte blanc et « Annuler » souligné (12 sec
 - **Do** garder un libellé de 12 px minimum visible au-dessus de chaque champ.
 - **Do** marquer toute proposition de l'IA (« Proposé par l'IA ») avec « Garder » et « Tout retirer », et offrir l'annulation de toute suppression.
 - **Do** donner à chaque contrôle un contour de focus ardoise de 2 px et un `aria-label` quand il n'a pas de texte.
-- **Do** rester plat au repos : surfaces blanches sur fond d'atelier, filets fins de 1 px.
+- **Do** garder une seule profondeur de carte : cartes grises sur page blanche, jamais de carte dans une carte, plans blancs.
 
 ### Don't:
-- **Don't** ajouter de dégradés, d'effets de verre, d'ombres marquées ou d'animations décoratives.
+- **Don't** ajouter de dégradés, d'effets de verre, d'ombres dures ou colorées, ni d'animations décoratives.
 - **Don't** habiller l'IA en gadget : ni étoile, ni éclat, ni ton magique autour des boutons d'assistance.
 - **Don't** laisser un composant par défaut sans l'adapter (bouton gris générique, tableau sans filets) : l'interface doit rester celle de l'atelier àlaclé.
 - **Don't** utiliser le jaune pour un volet ouvert, un bouton d'action ou une alerte.

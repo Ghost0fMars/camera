@@ -47,3 +47,7 @@ export async function generateShotImage(prompt: string, modelId: string, key: st
   if (!res.ok) throw new Error(data.error || `Erreur ${res.status}`);
   return data.url as string;
 }
+
+const MODEL = 'camera_fal_model';
+export const getImgModel = () => { try { return falModel(localStorage.getItem(MODEL) ?? '').id; } catch { return falModel('').id; } };
+export const setImgModel = (id: string) => { try { localStorage.setItem(MODEL, id); } catch { /* stockage indisponible */ } };

@@ -7,10 +7,11 @@ const FRAMING: Record<string, { k: number; ty: number }> = {
   PM: { k: 2.2, ty: 2 }, PR: { k: 3.4, ty: -10 }, GP: { k: 6, ty: -30 }, TGP: { k: 10, ty: -60 },
 };
 
-/** Vignette d'un plan : l'image de référence si elle existe, sinon le cadrage de sa valeur de plan en pictogramme plat. */
+/** Vignette d'un plan : l'image générée, sinon l'image de référence analysée, sinon le cadrage de sa valeur de plan en pictogramme plat. */
 export function ShotGlyph({ shot }: { shot: Shot }) {
   const clip = useId();
   const box = 'block aspect-video w-full rounded border border-neutral-300 bg-neutral-50';
+  if (shot.image) return <a href={shot.image.url} target="_blank" rel="noopener noreferrer" title="Ouvrir l'image en grand"><img src={shot.image.url} alt="Image générée du plan" loading="lazy" className={`${box} object-cover`} /></a>;
   if (shot.frame) return <img src={shot.frame.img} alt="Image de référence du plan" className={`${box} object-cover`} />;
   const f = FRAMING[shot.size];
   return (

@@ -50,7 +50,7 @@ export default function App() {
           <div className="flex size-9 shrink-0 items-center justify-center rounded bg-[#FFD369] text-black"><CameraIcon size={16} /></div>
           <div className="min-w-0">
             <h1 className="truncate font-serif text-lg italic tracking-wide">Caméra</h1>
-            <p className="text-[10px] font-medium uppercase tracking-widest text-[#222831]/40">Préparation de tournage</p>
+            <p className="text-xs font-medium uppercase tracking-widest text-[#222831]/65">Préparation de tournage</p>
           </div>
         </div>
         <nav aria-label="Sections" className="flex flex-1 flex-col gap-0.5 py-2">
@@ -59,13 +59,13 @@ export default function App() {
             return (
               <button key={t.id} onClick={() => setTab(t.id)} aria-current={tab === t.id ? 'page' : undefined}
                 className={`flex items-center gap-2.5 px-4 py-2.5 text-left text-sm font-medium transition-colors ${tab === t.id ? 'bg-[#FFD369] text-[#222831]' : 'text-[#222831]/55 hover:bg-[#EEEEEE] hover:text-[#222831]'}`}>
-                <span className="w-4 shrink-0 text-[10px] opacity-50">{i + 1}.</span><Icon size={15} />{t.label}
+                <span className="w-4 shrink-0 text-xs opacity-60">{i + 1}.</span><Icon size={15} />{t.label}
               </button>
             );
           })}
         </nav>
         <div className="space-y-1.5 border-t border-[#393E46] p-3">
-          <p className="px-1 pb-1 text-[10px] font-bold uppercase tracking-widest text-[#393E46]">Exports Excel</p>
+          <p className="px-1 pb-1 text-xs font-bold uppercase tracking-widest text-[#393E46]">Exports Excel</p>
           {exports}
         </div>
       </aside>
